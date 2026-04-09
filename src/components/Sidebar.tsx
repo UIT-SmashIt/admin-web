@@ -5,39 +5,170 @@ interface NavItem {
   key: string;
   label: string;
   path?: string;
+  icon?: React.ReactNode;
   children?: NavItem[];
 }
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function Icon({ d, viewBox = '0 0 24 24' }: { d: string | React.ReactNode; viewBox?: string }) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox={viewBox}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0 }}
+    >
+      {typeof d === 'string' ? <path d={d} /> : d}
+    </svg>
+  );
+}
+
+const Icons = {
+  dashboard: <Icon d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z" />,
+  courtStatus: (
+    <Icon
+      d={
+        <>
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </>
+      }
+    />
+  ),
+  sales: <Icon d="M3 3h18v4H3zM3 10h12v4H3zM3 17h8v4H3z" />,
+  inventory: <Icon d="M20 7H4a1 1 0 00-1 1v11a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1zM16 3H8L6 7h12l-2-4z" />,
+  staff: (
+    <Icon
+      d={
+        <>
+          <circle cx="9" cy="7" r="4" />
+          <path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+          <path d="M19 8v6M16 11h6" />
+        </>
+      }
+    />
+  ),
+  revenue: (
+    <Icon
+      d={
+        <>
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+        </>
+      }
+    />
+  ),
+  customers: (
+    <Icon
+      d={
+        <>
+          <circle cx="8" cy="7" r="4" />
+          <path d="M2 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
+          <circle cx="17" cy="9" r="3" />
+          <path d="M22 21v-1.5a3 3 0 00-3-3h-1" />
+        </>
+      }
+    />
+  ),
+  vouchers: (
+    <Icon
+      d={
+        <>
+          <path d="M20 12V6a2 2 0 00-2-2H6a2 2 0 00-2 2v6c1.1 0 2 .9 2 2s-.9 2-2 2v2a2 2 0 002 2h12a2 2 0 002-2v-2c-1.1 0-2-.9-2-2s.9-2 2-2z" />
+          <line x1="9" y1="12" x2="15" y2="12" />
+        </>
+      }
+    />
+  ),
+  maintenance: (
+    <Icon
+      d={
+        <>
+          <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+        </>
+      }
+    />
+  ),
+  schedule: (
+    <Icon
+      d={
+        <>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </>
+      }
+    />
+  ),
+  approvals: (
+    <Icon
+      d={
+        <>
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+        </>
+      }
+    />
+  ),
+  community: (
+    <Icon
+      d={
+        <>
+          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        </>
+      }
+    />
+  ),
+  profile: (
+    <Icon
+      d={
+        <>
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+        </>
+      }
+    />
+  ),
+};
 
 const NAV_ITEMS: NavItem[] = [
   {
     key: 'overview',
     label: 'Tổng quan',
     children: [
-      { key: 'dashboard', label: 'Dashboard', path: '/' },
+      { key: 'dashboard', label: 'Dashboard', path: '/', icon: Icons.dashboard },
     ],
   },
   {
     key: 'operations',
     label: 'Vận hành',
     children: [
-      { key: 'court-status', label: 'Trạng thái sân', path: '/trang-thai-san' },
-      { key: 'sales', label: 'Bán hàng', path: '/ban-hang' },
-      { key: 'inventory', label: 'Kho & dịch vụ', path: '/kho-dich-vu' },
-      { key: 'staff', label: 'Quản lý nhân sự', path: '/nhan-su' },
-      { key: 'revenue', label: 'Doanh thu', path: '/doanh-thu' },
-      { key: 'customers', label: 'Quản lý khách hàng', path: '/khach-hang' },
-      { key: 'vouchers', label: 'Quản lý voucher', path: '/voucher' },
-      { key: 'maintenance', label: 'Bảo trì', path: '/bao-tri' },
+      { key: 'court-status', label: 'Trạng thái sân', path: '/trang-thai-san', icon: Icons.courtStatus },
+      { key: 'sales', label: 'Bán hàng', path: '/ban-hang', icon: Icons.sales },
+      { key: 'inventory', label: 'Kho & dịch vụ', path: '/kho-dich-vu', icon: Icons.inventory },
+      { key: 'staff', label: 'Quản lý nhân sự', path: '/nhan-su', icon: Icons.staff },
+      { key: 'revenue', label: 'Doanh thu', path: '/doanh-thu', icon: Icons.revenue },
+      { key: 'customers', label: 'Quản lý khách hàng', path: '/khach-hang', icon: Icons.customers },
+      { key: 'vouchers', label: 'Quản lý voucher', path: '/voucher', icon: Icons.vouchers },
+      { key: 'maintenance', label: 'Bảo trì', path: '/bao-tri', icon: Icons.maintenance },
     ],
   },
   {
     key: 'management',
     label: 'Quản lý',
     children: [
-      { key: 'schedule', label: 'Lịch đặt', path: '/lich-dat' },
-      { key: 'approvals', label: 'Duyệt đơn', path: '/duyet-don' },
-      { key: 'community', label: 'Cộng đồng', path: '/cong-dong' },
-      { key: 'profile', label: 'Thông tin cá nhân', path: '/thong-tin' },
+      { key: 'schedule', label: 'Lịch đặt', path: '/lich-dat', icon: Icons.schedule },
+      { key: 'approvals', label: 'Duyệt đơn', path: '/duyet-don', icon: Icons.approvals },
+      { key: 'community', label: 'Cộng đồng', path: '/cong-dong', icon: Icons.community },
+      { key: 'profile', label: 'Thông tin cá nhân', path: '/thong-tin', icon: Icons.profile },
     ],
   },
 ];
@@ -197,8 +328,8 @@ function NavItemRow({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 9,
-        padding: isChild ? '8px 16px 8px 32px' : '8px 16px',
+        gap: 8,
+        padding: isChild ? '7px 16px 7px 16px' : '8px 16px',
         fontSize: isChild ? 12.5 : 13,
         color: active ? '#D4840A' : '#666',
         fontWeight: active ? 500 : 400,
@@ -222,6 +353,11 @@ function NavItemRow({
         }
       }}
     >
+      {item.icon && (
+        <span style={{ display: 'flex', alignItems: 'center', opacity: active ? 1 : 0.65 }}>
+          {item.icon}
+        </span>
+      )}
       {item.label}
     </div>
   );

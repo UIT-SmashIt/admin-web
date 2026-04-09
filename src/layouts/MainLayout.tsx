@@ -98,13 +98,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         background: '#f7f7f5',
       }}
     >
-      {/* Sidebar */}
-      <Sidebar
-        collapsed={!sidebarOpen}
-        onLogout={handleLogout}
-      />
+      <Sidebar collapsed={!sidebarOpen} onLogout={handleLogout} />
 
-      {/* Right column: Topbar + page content */}
       <div
         style={{
           flex: 1,
@@ -116,13 +111,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       >
         <Topbar />
 
-        {/* Page content rendered by child routes */}
         <main
           style={{
             flex: 1,
-            overflow: 'hidden',
+            overflowY: 'auto', // Add this
+            overflowX: 'hidden', // Add this
             display: 'flex',
             flexDirection: 'column',
+            width: '100%',
           }}
         >
           {children}

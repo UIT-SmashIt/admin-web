@@ -90,11 +90,9 @@ function RevenueBarChart() {
   const chartRef = useRef<unknown>(null);
 
   useEffect(() => {
-    let Chart: typeof import('chart.js').Chart | undefined;
-
     async function init() {
       // @ts-expect-error chart.js loaded via CDN script tag
-      Chart = window.Chart;
+      const Chart = window.Chart;
       if (!Chart || !canvasRef.current) return;
 
       if (chartRef.current) {
@@ -213,9 +211,11 @@ export default function Dashboard() {
       style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '20px 24px',
+        padding: '20px 0',
         fontFamily: "'Be Vietnam Pro', sans-serif",
         background: '#f7f7f5',
+        boxSizing: 'border-box',
+        width: '100%',
       }}
     >
       {/* Page header */}
@@ -225,6 +225,8 @@ export default function Dashboard() {
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 20,
+          paddingLeft: 24,
+          paddingRight: 24,
         }}
       >
         <div>
@@ -248,7 +250,16 @@ export default function Dashboard() {
       </div>
 
       {/* Metrics */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          paddingLeft: 24,
+          paddingRight: 24,
+        }}
+      >
         {METRICS.map((card) => (
           <MetricCardUI key={card.label} card={card} />
         ))}
@@ -261,6 +272,8 @@ export default function Dashboard() {
           gridTemplateColumns: '2fr 1fr',
           gap: 14,
           marginBottom: 14,
+          paddingLeft: 24,
+          paddingRight: 24,
         }}
       >
         {/* Revenue bar chart */}
@@ -304,7 +317,15 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 14,
+          paddingLeft: 24,
+          paddingRight: 24,
+        }}
+      >
         {/* Popular slots */}
         <div
           style={{

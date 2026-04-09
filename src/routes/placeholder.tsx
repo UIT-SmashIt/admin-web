@@ -1,4 +1,5 @@
 import { Route } from '@tanstack/react-router'
+import CourtStatus from '../pages/CourtStatus'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -24,7 +25,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/trang-thai-san',
-    component: () => <PlaceholderPage title="Trạng thái sân" />,
+    component: CourtStatus,
   }),
   new Route({
     getParentRoute: () => rootRoute,
