@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import Sidebar from '../components/Sidebar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -81,13 +81,12 @@ function Topbar({ courtName = 'Sân Cầu Lông Thắng Lợi' }: TopbarProps) {
  *     ...
  *   </Route>
  */
-export default function MainLayout() {
+export default function MainLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen] = useState(true);
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Replace with your actual logout logic (clear tokens, redirect, etc.)
-    navigate('/login');
+    navigate({ to: '/login' });
   };
 
   return (
@@ -115,7 +114,7 @@ export default function MainLayout() {
           minWidth: 0,
         }}
       >
-        <Topbar/>
+        <Topbar />
 
         {/* Page content rendered by child routes */}
         <main
@@ -126,7 +125,7 @@ export default function MainLayout() {
             flexDirection: 'column',
           }}
         >
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

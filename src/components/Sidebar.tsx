@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@tanstack/react-router';
 
 interface NavItem {
   key: string;
@@ -54,7 +54,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
   const handleNavClick = (item: NavItem) => {
     setActiveKey(item.key);
-    if (item.path) navigate(item.path);
+    if (item.path) navigate({ to: item.path });
   };
 
   const isActive = (item: NavItem) => {
