@@ -1,6 +1,7 @@
 import { Route } from '@tanstack/react-router'
 import CourtStatus from '../pages/CourtStatus'
 import Banhang from '../pages/Sale'
+import KhoDichVu from '../pages/Inventory'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -36,7 +37,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/kho-dich-vu',
-    component: () => <PlaceholderPage title="Kho & dịch vụ" />,
+    component: KhoDichVu,
   }),
   new Route({
     getParentRoute: () => rootRoute,
