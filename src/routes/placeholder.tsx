@@ -2,6 +2,7 @@ import { Route } from '@tanstack/react-router'
 import CourtStatus from '../pages/CourtStatus'
 import Banhang from '../pages/Sale'
 import KhoDichVu from '../pages/Inventory'
+import Nhanvien from '../pages/Staff'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -42,7 +43,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/nhan-su',
-    component: () => <PlaceholderPage title="Quản lý nhân sự" />,
+    component: Nhanvien,
   }),
   new Route({
     getParentRoute: () => rootRoute,
