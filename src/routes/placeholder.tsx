@@ -3,6 +3,7 @@ import CourtStatus from '../pages/CourtStatus'
 import Banhang from '../pages/Sale'
 import KhoDichVu from '../pages/Inventory'
 import Nhanvien from '../pages/Staff'
+import DoanhThu from '../pages/Revenue'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -48,7 +49,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/doanh-thu',
-    component: () => <PlaceholderPage title="Doanh thu" />,
+    component: DoanhThu,
   }),
   new Route({
     getParentRoute: () => rootRoute,
