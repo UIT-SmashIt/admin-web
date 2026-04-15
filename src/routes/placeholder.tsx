@@ -5,6 +5,8 @@ import KhoDichVu from '../pages/Inventory'
 import Nhanvien from '../pages/Staff'
 import DoanhThu from '../pages/Revenue'
 import KhachHang from '../pages/Customer'
+import Voucher from '../pages/Voucher'
+import BaoTri from '../pages/Maintenance'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -60,12 +62,12 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/voucher',
-    component: () => <PlaceholderPage title="Quản lý voucher" />,
+    component: Voucher,
   }),
   new Route({
     getParentRoute: () => rootRoute,
     path: '/bao-tri',
-    component: () => <PlaceholderPage title="Bảo trì" />,
+    component: BaoTri,
   }),
   new Route({
     getParentRoute: () => rootRoute,
