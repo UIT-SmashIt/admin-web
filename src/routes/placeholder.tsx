@@ -4,6 +4,7 @@ import Banhang from '../pages/Sale'
 import KhoDichVu from '../pages/Inventory'
 import Nhanvien from '../pages/Staff'
 import DoanhThu from '../pages/Revenue'
+import KhachHang from '../pages/Customer'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -54,7 +55,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/khach-hang',
-    component: () => <PlaceholderPage title="Quản lý khách hàng" />,
+    component: KhachHang,
   }),
   new Route({
     getParentRoute: () => rootRoute,
