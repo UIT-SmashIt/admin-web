@@ -1,8 +1,8 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type BookingType = 'single' | 'fixed';
+export type BookingType = 'single' | 'community';
 export type PaymentStatus = 'unpaid' | 'deposited' | 'paid';
-export type BookingTab = 'single' | 'fixed' | 'all';
+export type BookingTab = 'single' | 'community' | 'all';
 
 export interface ServiceItem {
   id: number;
@@ -24,10 +24,9 @@ export interface Booking {
   customerCode: string;
   phone: string;
   courtId: number;
-  date: string;
+  date: string;        // DD/MM/YYYY
   startTime: string;
   endTime: string;
-  weekDays?: number[];
   courtFee: number;
   serviceFee: number;
   deposit: number;
@@ -36,6 +35,11 @@ export interface Booking {
   services: SelectedService[];
   note: string;
   createdAt: string;
+  // community-only
+  maxPlayers?: number;
+  currentPlayers?: number;
+  caption?: string;
+  level?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -45,8 +49,6 @@ export const COURTS = [
   { id: 2, name: 'Sân 2' },
   { id: 3, name: 'Sân 3' },
 ];
-
-export const WEEKDAYS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'];
 
 export const TIME_SLOTS = [
   '6:00','6:30','7:00','7:30','8:00','8:30','9:00','9:30',
@@ -69,6 +71,8 @@ export const PENDING_SLOTS: Record<number, string[]> = {
 
 export const COURT_PRICE_PER_HOUR = 80000;
 
+export const PLAY_LEVELS = ['Mọi trình độ', 'Mới bắt đầu', 'Trung bình', 'Khá', 'Chuyên nghiệp'];
+
 export const SERVICES_LIST: ServiceItem[] = [
   { id: 1, name: 'Cầu Yonex AS-05',  unit: 'hộp',  price: 220000, category: 'Cầu' },
   { id: 2, name: 'Cầu nhựa RSL',     unit: 'hộp',  price: 85000,  category: 'Cầu' },
@@ -77,7 +81,7 @@ export const SERVICES_LIST: ServiceItem[] = [
   { id: 5, name: 'Nước Pocari',      unit: 'chai', price: 15000,  category: 'Nước' },
   { id: 6, name: 'Nước lọc Aqua',   unit: 'chai', price: 8000,   category: 'Nước' },
   { id: 7, name: 'Red Bull',         unit: 'lon',  price: 12000,  category: 'Nước' },
-  { id: 8, name: 'Quấn cán',        unit: 'cuộn', price: 35000,  category: 'Phụ kiện' },
+  { id: 8, name: 'Quấn cán',         unit: 'cuộn', price: 35000,  category: 'Phụ kiện' },
   { id: 9, name: 'Snack Oishi',      unit: 'gói',  price: 5000,   category: 'Snack' },
 ];
 
@@ -93,10 +97,31 @@ export function calcHours(start: string, end: string): number {
   return Math.max(0, (toMin(end) - toMin(start)) / 60);
 }
 
+/** Convert YYYY-MM-DD → DD/MM/YYYY */
+export function isoToVN(iso: string): string {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+/** Convert DD/MM/YYYY → YYYY-MM-DD */
+export function vnToISO(vn: string): string {
+  if (!vn) return '';
+  const [d, m, y] = vn.split('/');
+  return `${y}-${m}-${d}`;
+}
+
+/** Min ISO date = 3 days from today */
+export function minCommunityDate(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 3);
+  return d.toISOString().slice(0, 10);
+}
+
 export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; color: string; bg: string }> = {
-  unpaid:    { label: 'Chưa thanh toán', color: '#fff', bg: '#E53E3E' },
+  unpaid:    { label: 'Chưa thanh toán', color: '#fff',    bg: '#E53E3E' },
   deposited: { label: 'Đã cọc',          color: '#1a1a1a', bg: '#F6C90E' },
-  paid:      { label: 'Đã thanh toán',   color: '#fff', bg: '#38A169' },
+  paid:      { label: 'Đã thanh toán',   color: '#fff',    bg: '#38A169' },
 };
 
 export const INITIAL_BOOKINGS: Booking[] = [
@@ -104,15 +129,19 @@ export const INITIAL_BOOKINGS: Booking[] = [
     id: 1, type: 'single', customerName: 'Nguyễn Văn An', customerCode: 'NVA01',
     phone: '0901234567', courtId: 1, date: '16/04/2026',
     startTime: '6:00', endTime: '8:00', courtFee: 160000, serviceFee: 15000,
-    deposit: 80000, paymentStatus: 'unpaid', services: [{ service: SERVICES_LIST[4], qty: 1 }],
+    deposit: 80000, paymentStatus: 'unpaid',
+    services: [{ service: SERVICES_LIST[4], qty: 1 }],
     note: '', createdAt: '16/04/2026',
   },
   {
-    id: 2, type: 'fixed', customerName: 'Trần Thị Bình', customerCode: 'TTB02',
-    phone: '0912345678', courtId: 2, date: '16/04/2026',
-    startTime: '7:00', endTime: '9:00', weekDays: [0, 2, 4],
+    id: 2, type: 'community', customerName: 'Trần Thị Bình', customerCode: 'TTB02',
+    phone: '0912345678', courtId: 2, date: '20/04/2026',
+    startTime: '7:00', endTime: '9:00',
     courtFee: 320000, serviceFee: 0, deposit: 160000,
-    paymentStatus: 'deposited', services: [], note: 'KH VIP', createdAt: '15/04/2026',
+    paymentStatus: 'deposited', services: [], note: '',
+    createdAt: '16/04/2026',
+    maxPlayers: 4, currentPlayers: 2, level: 'Trung bình',
+    caption: '🏸 Tìm 2 người chơi cầu lông sáng 20/04 tại Sân 2, 7:00–9:00. Trình độ trung bình. Ai quan tâm nhắn tin nhé!',
   },
   {
     id: 3, type: 'single', customerName: 'Lê Dương', customerCode: 'LD03',
@@ -122,12 +151,15 @@ export const INITIAL_BOOKINGS: Booking[] = [
     services: [{ service: SERVICES_LIST[0], qty: 1 }], note: '', createdAt: '16/04/2026',
   },
   {
-    id: 4, type: 'fixed', customerName: 'Phạm Hương', customerCode: 'PH04',
-    phone: '0934567890', courtId: 1, date: '16/04/2026',
-    startTime: '18:00', endTime: '20:00', weekDays: [1, 3, 5, 6],
-    courtFee: 640000, serviceFee: 30000, deposit: 320000,
+    id: 4, type: 'community', customerName: 'Phạm Hương', customerCode: 'PH04',
+    phone: '0934567890', courtId: 1, date: '22/04/2026',
+    startTime: '18:00', endTime: '20:00',
+    courtFee: 160000, serviceFee: 30000, deposit: 80000,
     paymentStatus: 'paid', paymentMethod: 'cash',
-    services: [{ service: SERVICES_LIST[3], qty: 1 }], note: '', createdAt: '14/04/2026',
+    services: [{ service: SERVICES_LIST[3], qty: 1 }], note: '',
+    createdAt: '16/04/2026',
+    maxPlayers: 6, currentPlayers: 6, level: 'Khá',
+    caption: '🏸 Đủ người rồi nhé! Sân 1, 22/04, 18:00–20:00. Hẹn gặp trên sân 💪',
   },
   {
     id: 5, type: 'single', customerName: 'Bùi Nam', customerCode: 'BN05',
@@ -135,11 +167,5 @@ export const INITIAL_BOOKINGS: Booking[] = [
     startTime: '8:00', endTime: '10:00', courtFee: 160000, serviceFee: 85000,
     deposit: 80000, paymentStatus: 'deposited',
     services: [{ service: SERVICES_LIST[1], qty: 1 }], note: '', createdAt: '16/04/2026',
-  },
-  {
-    id: 6, type: 'single', customerName: 'Vũ Linh', customerCode: 'VL06',
-    phone: '0956789012', courtId: 3, date: '16/04/2026',
-    startTime: '10:00', endTime: '12:00', courtFee: 160000, serviceFee: 0,
-    deposit: 80000, paymentStatus: 'unpaid', services: [], note: '', createdAt: '16/04/2026',
   },
 ];

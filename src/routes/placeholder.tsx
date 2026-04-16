@@ -11,7 +11,7 @@ import Voucher from '../pages/Voucher'
 import BaoTri from '../pages/Maintenance'
 import LichDat from '../pages/Lịch đặt/Lichdat'
 import DatLichLinhHoat from '../pages/Lịch đặt/DatLichLinhHoat'
-import DatLichCoDinh from '../pages/Lịch đặt/DatLichCoDinh'
+import DatLichCongDong from '../pages/Lịch đặt/DatLichCongDong'
 import type { Booking } from '../pages/Lịch đặt/LichDatTypes'
 import rootRoute from './root'
 
@@ -40,7 +40,7 @@ function LichDatWrapper() {
 
   return (
     <LichDat
-      onNavigateFixed={() => navigate({ to: '/dat-lich-co-dinh' })}
+      onNavigateCommunity={() => navigate({ to: '/dat-lich-cong-dong' })}
       onNavigateSingle={() => navigate({ to: '/dat-lich-linh-hoat' })}
       bookings={bookings}
       setBookings={setBookings}
@@ -59,11 +59,11 @@ function DatLichLinhHoatWrapper() {
   )
 }
 
-function DatLichCoDinhWrapper() {
+function DatLichCongDongWrapper() {
   const navigate = useNavigate()
 
   return (
-    <DatLichCoDinh
+    <DatLichCongDong
       onBack={() => navigate({ to: '/lich-dat' })}
       onSave={() => navigate({ to: '/lich-dat' })}
     />
@@ -123,8 +123,8 @@ const placeholderRoutes = [
   }),
   new Route({
     getParentRoute: () => rootRoute,
-    path: '/dat-lich-co-dinh',
-    component: DatLichCoDinhWrapper,
+    path: '/dat-lich-cong-dong',
+    component: DatLichCongDongWrapper,
   }),
   new Route({
     getParentRoute: () => rootRoute,
