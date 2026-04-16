@@ -13,6 +13,8 @@ import LichDat from '../pages/Lịch đặt/Lichdat'
 import DatLichLinhHoat from '../pages/Lịch đặt/DatLichLinhHoat'
 import DatLichCongDong from '../pages/Lịch đặt/DatLichCongDong'
 import type { Booking } from '../pages/Lịch đặt/LichDatTypes'
+import DuyetDon from '../pages/Approval'
+import CongDong from '../pages/Community'
 import rootRoute from './root'
 
 function PlaceholderPage({ title }: { title: string }) {
@@ -129,12 +131,12 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/duyet-don',
-    component: () => <PlaceholderPage title="Duyệt đơn" />,
+    component: DuyetDon,
   }),
   new Route({
     getParentRoute: () => rootRoute,
     path: '/cong-dong',
-    component: () => <PlaceholderPage title="Cộng đồng" />,
+    component: CongDong,
   }),
   new Route({
     getParentRoute: () => rootRoute,
