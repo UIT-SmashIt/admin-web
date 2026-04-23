@@ -1,4 +1,11 @@
 import { useState, useMemo } from 'react';
+import {
+  useFetchProductCategory,
+  useCreateProductCategory,
+  useUpdateProductCategory
+} from "../hooks/useProductCategory.ts";
+import type {ProductCategoryReq, IProductCategory} from "../types/productCategory.type.ts";
+import { Spin } from 'antd';
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES  (export để dùng ở các trang khác, VD: BanHang)
@@ -47,14 +54,6 @@ export interface Category {
   color: string;  // background
   text: string;   // text/border
 }
-
-const INITIAL_CATEGORIES: Category[] = [
-  { name: 'Nước',     color: '#E6F1FB', text: '#1565C0' },
-  { name: 'Cầu',      color: '#FFF3E0', text: '#D4840A' },
-  { name: 'Vợt',      color: '#F0FBF0', text: '#2E7D32' },
-  { name: 'Phụ kiện', color: '#F9F0FB', text: '#7B1FA2' },
-  { name: 'Snack',    color: '#FFF8E1', text: '#F57F17' },
-];
 
 // Palette gợi ý khi tạo danh mục mới
 const PALETTE: { color: string; text: string }[] = [
@@ -177,14 +176,14 @@ function VariantEditor({ variants, onChange }: { variants: StockVariant[]; onCha
 // ═══════════════════════════════════════════════════════════════
 
 function CategoryEditModal({ cat, existingNames, onSave, onClose }: {
-  cat: Category | null; // null = thêm mới
+  cat: ProductCategoryReq | null; // null = thêm mới
   existingNames: string[];
-  onSave: (c: Category) => void;
+  onSave: (c: ProductCategoryReq) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState(cat?.name ?? '');
   const [selPalette, setSelPalette] = useState<{ color: string; text: string }>(
-    cat ? { color: cat.color, text: cat.text } : PALETTE[0]
+    cat ? { color: cat.backgroundColor, text: cat.textColor } : PALETTE[0]
   );
 
   const isEdit = !!cat;
@@ -193,7 +192,7 @@ function CategoryEditModal({ cat, existingNames, onSave, onClose }: {
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave({ name: name.trim(), color: selPalette.color, text: selPalette.text });
+    onSave({ name: name.trim(), backgroundColor: selPalette.color, textColor: selPalette.text });
     onClose();
   };
 
@@ -252,19 +251,19 @@ function CategoryEditModal({ cat, existingNames, onSave, onClose }: {
 // ═══════════════════════════════════════════════════════════════
 
 function CategoryManagerModal({ categories, itemCountByCategory, onAdd, onEdit, onDelete, onClose }: {
-  categories: Category[];
+  categories: IProductCategory[];
   itemCountByCategory: Record<string, number>;
-  onAdd: (c: Category) => void;
-  onEdit: (oldName: string, c: Category) => void;
+  onAdd: (c: ProductCategoryReq) => void;
+  onEdit: (id: string, c: ProductCategoryReq) => void;
   onDelete: (name: string) => void;
   onClose: () => void;
 }) {
-  const [editModal, setEditModal] = useState<{ open: boolean; cat: Category | null }>({ open: false, cat: null });
+  const [editModal, setEditModal] = useState<{ open: boolean; cat: IProductCategory | null }>({ open: false, cat: null });
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const handleSave = (c: Category) => {
+  const handleSave = (c: ProductCategoryReq) => {
     if (editModal.cat) {
-      onEdit(editModal.cat.name, c);
+      onEdit(editModal.cat.productCategoryId, c);
     } else {
       onAdd(c);
     }
@@ -304,9 +303,9 @@ function CategoryManagerModal({ categories, itemCountByCategory, onAdd, onEdit, 
                   onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#f5f5f3'}
                   onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = '#fafafa'}>
                   {/* Color swatch */}
-                  <div style={{ width: 14, height: 14, borderRadius: 4, background: cat.color, border: `2px solid ${cat.text}`, flexShrink: 0 }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 4, background: cat.backgroundColor, border: `2px solid ${cat.textColor}`, flexShrink: 0 }} />
                   {/* Badge */}
-                  <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, background: cat.color, color: cat.text, border: `1px solid ${cat.text}20` }}>{cat.name}</span>
+                  <span style={{ padding: '3px 12px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, background: cat.backgroundColor, color: cat.textColor, border: `1px solid ${cat.textColor}20` }}>{cat.name}</span>
                   {/* Count */}
                   <span style={{ fontSize: 12, color: '#aaa' }}>{count} sản phẩm</span>
                   <div style={{ flex: 1 }} />
@@ -362,7 +361,7 @@ function CategoryManagerModal({ categories, itemCountByCategory, onAdd, onEdit, 
 
 function ItemModal({ mode, item, categories, onSave, onClose }: {
   mode: ItemModalMode; item: StockItem | null;
-  categories: Category[];
+  categories: IProductCategory[];
   onSave: (item: StockItem) => void; onClose: () => void;
 }) {
   const [name, setName] = useState(item?.name ?? '');
@@ -403,9 +402,9 @@ function ItemModal({ mode, item, categories, onSave, onClose }: {
               {categories.map(c => (
                 <button key={c.name} onClick={() => setCategory(c.name)} style={{
                   padding: '6px 14px', borderRadius: 20, fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer',
-                  border: `1.5px solid ${category === c.name ? c.text : '#e0e0e0'}`,
-                  background: category === c.name ? c.color : '#fafafa',
-                  color: category === c.name ? c.text : '#666',
+                  border: `1.5px solid ${category === c.name ? c.textColor : '#e0e0e0'}`,
+                  background: category === c.name ? c.backgroundColor : '#fafafa',
+                  color: category === c.name ? c.textColor : '#666',
                   fontWeight: category === c.name ? 700 : 400, transition: 'all 0.12s',
                 }}>{c.name}</button>
               ))}
@@ -737,7 +736,7 @@ function HistoryModal({ history, onClose }: { history: ImportRecord[]; onClose: 
 // ═══════════════════════════════════════════════════════════════
 
 function StockListView({ items, categories, onImport, onShowHistory, onAddItem, onEditItem, onDeleteItem, onAdjustQty, onManageCategories }: {
-  items: StockItem[]; categories: Category[]; onImport: () => void; onShowHistory: () => void;
+  items: StockItem[]; categories: IProductCategory[]; onImport: () => void; onShowHistory: () => void;
   onAddItem: () => void; onEditItem: (i: StockItem) => void;
   onDeleteItem: (i: StockItem) => void; onAdjustQty: (i: StockItem) => void;
   onManageCategories: () => void;
@@ -750,7 +749,7 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
   const activeCatFilter = catFilter === 'Tất cả' || catNames.includes(catFilter) ? catFilter : 'Tất cả';
 
   const catMap = useMemo(() => {
-    const m: Record<string, Category> = {};
+    const m: Record<string, IProductCategory> = {};
     categories.forEach(c => { m[c.name] = c; });
     return m;
   }, [categories]);
@@ -806,9 +805,9 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
           return (
             <button key={c} onClick={() => setCatFilter(c)} style={{
               padding: '4px 12px', borderRadius: 20, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0,
-              border: `1px solid ${isActive ? (catObj?.text ?? '#D4840A') : '#e0e0e0'}`,
-              background: isActive ? (catObj?.color ?? '#FFF3E0') : '#fff',
-              color: isActive ? (catObj?.text ?? '#D4840A') : '#666', fontWeight: isActive ? 600 : 400,
+              border: `1px solid ${isActive ? (catObj?.textColor ?? '#D4840A') : '#e0e0e0'}`,
+              background: isActive ? (catObj?.backgroundColor ?? '#FFF3E0') : '#fff',
+              color: isActive ? (catObj?.textColor ?? '#D4840A') : '#666', fontWeight: isActive ? 600 : 400,
             }}>{c}</button>
           );
         })}
@@ -837,10 +836,10 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
             <tbody>
               {Object.entries(grouped).map(([cat, catItems]) => [
                 <tr key={`cat-${cat}`}>
-                  <td colSpan={6} style={{ padding: '7px 14px', background: catMap[cat]?.color ?? '#f0f0ee', borderTop: '0.5px solid rgba(0,0,0,0.06)', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+                  <td colSpan={6} style={{ padding: '7px 14px', background: catMap[cat]?.backgroundColor ?? '#f0f0ee', borderTop: '0.5px solid rgba(0,0,0,0.06)', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: catMap[cat]?.text ?? '#333', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{cat}</span>
-                      <span style={{ fontSize: 10.5, background: catMap[cat]?.text ?? '#333', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 500 }}>{catItems.length}</span>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, color: catMap[cat]?.textColor ?? '#333', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{cat}</span>
+                      <span style={{ fontSize: 10.5, background: catMap[cat]?.textColor ?? '#333', color: '#fff', borderRadius: 10, padding: '1px 7px', fontWeight: 500 }}>{catItems.length}</span>
                     </div>
                   </td>
                 </tr>,
@@ -902,7 +901,9 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
 export default function KhoDichVu() {
   const [items, setItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const [history, setHistory] = useState<ImportRecord[]>(INITIAL_HISTORY);
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const { data: categories, isLoading} = useFetchProductCategory();
+  const { mutate: create } = useCreateProductCategory();
+  const { mutate: update } = useUpdateProductCategory();
   const [view, setView] = useState<View>('list');
   const [itemModal, setItemModal] = useState<{ mode: ItemModalMode; item: StockItem | null }>({ mode: null, item: null });
   const [deleteTarget, setDeleteTarget] = useState<StockItem | null>(null);
@@ -915,22 +916,18 @@ export default function KhoDichVu() {
 
   // ── CATEGORY CRUD ──────────────────────────────────────────────
 
-  const handleAddCategory = (cat: Category) => {
-    setCategories(prev => [...prev, cat]);
+  const handleAddCategory = (cat: ProductCategoryReq) => {
+    create(cat);
     showToast('✓ Đã thêm danh mục: ' + cat.name);
   };
 
-  const handleEditCategory = (oldName: string, cat: Category) => {
-    setCategories(prev => prev.map(c => c.name === oldName ? cat : c));
-    // Update all items that used the old category name
-    if (oldName !== cat.name) {
-      setItems(prev => prev.map(i => i.category === oldName ? { ...i, category: cat.name } : i));
-    }
+  const handleEditCategory = (id: string, cat: ProductCategoryReq) => {
+    update({id: id, data: cat});
     showToast('✓ Đã cập nhật danh mục: ' + cat.name);
   };
 
   const handleDeleteCategory = (name: string) => {
-    setCategories(prev => prev.filter(c => c.name !== name));
+    // setLocalCategories(prev => prev.filter(c => c.name !== name));
     showToast('🗑 Đã xóa danh mục: ' + name);
   };
 
@@ -984,6 +981,8 @@ export default function KhoDichVu() {
     setView('list');
   };
 
+  if (isLoading) { return <Spin fullscreen /> }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {/* Toast */}
@@ -995,7 +994,7 @@ export default function KhoDichVu() {
 
       {/* Modals */}
       {itemModal.mode && (
-        <ItemModal mode={itemModal.mode} item={itemModal.item} categories={categories}
+        <ItemModal mode={itemModal.mode} item={itemModal.item} categories={categories ?? []}
           onSave={itemModal.mode === 'add' ? handleAddItem : handleEditItem}
           onClose={() => setItemModal({ mode: null, item: null })} />
       )}
@@ -1008,7 +1007,7 @@ export default function KhoDichVu() {
       {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} />}
       {showCategoryManager && (
         <CategoryManagerModal
-          categories={categories}
+          categories={categories ?? []}
           itemCountByCategory={itemCountByCategory}
           onAdd={handleAddCategory}
           onEdit={handleEditCategory}
@@ -1033,7 +1032,7 @@ export default function KhoDichVu() {
         {view === 'list' ? (
           <StockListView
             items={items}
-            categories={categories}
+            categories={categories ?? []}
             onImport={() => setView('import')}
             onShowHistory={() => setShowHistory(true)}
             onAddItem={() => setItemModal({ mode: 'add', item: null })}
