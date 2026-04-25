@@ -26,7 +26,7 @@ interface OrderHistory {
 type PaymentMethod = 'cash' | 'qr' | null;
 type View = 'pos' | 'checkout';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Mock const ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['Nước', 'Snack', 'Vợt', 'Cầu', 'Phụ kiện'];
 

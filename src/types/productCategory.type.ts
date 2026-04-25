@@ -1,5 +1,5 @@
 export interface IProductCategory {
-  productCategoryId: string;
+  productCategoryId: number;
   name: string;
   description: string;
   backgroundColor: string;

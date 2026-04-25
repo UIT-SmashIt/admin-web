@@ -21,7 +21,7 @@ interface ProductStat {
   revenue: string;
 }
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Mock const ────────────────────────────────────────────────────────────────
 
 const METRICS: MetricCard[] = [
   { label: 'Doanh thu hôm nay', value: '4,2M', change: '▲ 12% so với hôm qua', trend: 'up' },
