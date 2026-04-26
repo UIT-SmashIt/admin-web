@@ -6,8 +6,12 @@ import {
 } from "../hooks/useProductCategory.ts";
 import type {ProductCategoryReq, IProductCategory} from "../types/productCategory.type.ts";
 import { Spin } from 'antd';
-import {useAddProduct, useFetchProducts} from "../hooks/useProduct.ts";
-import type {IProduct, IProductDetail, ProductCreatePayload} from "../types/product.type.ts";
+import {useAddProduct, useEditProduct, useFetchProducts} from "../hooks/useProduct.ts";
+import type {
+  IProduct,
+  IProductDetail, ProductAddPayload,
+  ProductEditPayload,
+} from "../types/product.type.ts";
 import {SaleType} from "../const/saleType.const.ts";
 
 // ═══════════════════════════════════════════════════════════════
@@ -356,10 +360,13 @@ function CategoryManagerModal({ categories, itemCountByCategory, onAdd, onEdit, 
 // ITEM MODAL  (Thêm / Sửa sản phẩm)
 // ═══════════════════════════════════════════════════════════════
 
-function ItemModal({ mode, item, categories, onSave, onClose }: {
-  mode: ItemModalMode; item: IProduct | null;
+function ItemModal({ mode, item, categories, onAdd, onEdit, onClose }: {
+  mode: ItemModalMode;
+  item: IProduct | null;
   categories: IProductCategory[];
-  onSave: (item: ProductCreatePayload) => void; onClose: () => void;
+  onAdd: (item: ProductAddPayload) => void;
+  onEdit: (item: ProductEditPayload) => void;
+  onClose: () => void;
 }) {
   const [name, setName] = useState(item?.productName ?? '');
   const [category, setCategory] = useState(item?.categoryId ?? (categories[0]?.productCategoryId ?? 0));
@@ -373,7 +380,12 @@ function ItemModal({ mode, item, categories, onSave, onClose }: {
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave({ productName: name.trim(), categoryId: category, capacity, details });
+    if (mode === 'add') {
+      onAdd({ productName: name.trim(), categoryId: category, capacity, details });
+    } else if (mode === 'edit' && item) {
+      onEdit({ productId: item.productId, productName: name.trim(), categoryId: category, capacity, details})
+    }
+
     onClose();
   };
 
@@ -902,10 +914,11 @@ export default function KhoDichVu() {
   const [items, setItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const { data: products, isLoading: productsLoading } = useFetchProducts();
   const { mutate: addProduct } = useAddProduct();
+  const { mutate: editProduct } = useEditProduct();
   const [history, setHistory] = useState<ImportRecord[]>(INITIAL_HISTORY);
   const { data: categories, isLoading: categoriesLoading} = useFetchProductCategories();
   const { mutate: addCategory } = useAddProductCategory();
-  const { mutate: update } = useEditProductCategory();
+  const { mutate: editCategory } = useEditProductCategory();
   const [view, setView] = useState<View>('list');
   const [itemModal, setItemModal] = useState<{ mode: ItemModalMode; item: IProduct | null }>({ mode: null, item: null });
   const [deleteTarget, setDeleteTarget] = useState<IProduct | undefined | null>(null);
@@ -924,7 +937,7 @@ export default function KhoDichVu() {
   };
 
   const handleEditCategory = (id: number, cat: ProductCategoryReq) => {
-    update({id: id, data: cat});
+    editCategory({id: id, data: cat});
     showToast('✓ Đã cập nhật danh mục: ' + cat.name);
   };
 
@@ -941,15 +954,16 @@ export default function KhoDichVu() {
 
   // ── CRUD: swap these with API calls ───────────────────────────
 
-  const handleAddItem = (newItem: ProductCreatePayload) => {
+  const handleAddItem = (newItem: ProductAddPayload) => {
     addProduct(newItem);
     showToast('✓ Đã thêm: ' + newItem.productName);
   };
 
-  const handleEditItem = (updated: ProductCreatePayload) => {
+  const handleEditItem = (product: ProductEditPayload) => {
     // await api.put(`/inventory/items/${updated.id}`, updated)
     // setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
-    showToast('✓ Đã cập nhật: ' + updated.productName);
+    editProduct({id: product.productId, data: product})
+    showToast('✓ Đã cập nhật: ' + product.productName);
   };
 
   const handleDeleteItem = (id: number | undefined | null) => {
@@ -995,8 +1009,12 @@ export default function KhoDichVu() {
 
       {/* Modals */}
       {itemModal.mode && (
-        <ItemModal mode={itemModal.mode} item={itemModal.item} categories={categories ?? []}
-          onSave={itemModal.mode === 'add' ? handleAddItem : handleEditItem}
+        <ItemModal
+          mode={itemModal.mode}
+          item={itemModal.item}
+          categories={categories ?? []}
+          onAdd={handleAddItem}
+          onEdit={handleEditItem}
           onClose={() => setItemModal({ mode: null, item: null })} />
       )}
       {deleteTarget && (

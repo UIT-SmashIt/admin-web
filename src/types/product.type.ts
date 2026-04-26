@@ -2,10 +2,9 @@ import type {SaleType} from "../const/saleType.const.ts";
 import type {ProductStatus} from "../const/productStatus.const.ts";
 
 export interface IProduct {
-  productId?: number;
+  productId: number;
   productName: string;
   capacity: string;
-  status?: ProductStatus;
   categoryId: number;
   categoryName: string;
   details: IProductDetail[];
@@ -19,9 +18,18 @@ export interface IProductDetail {
   saleType: SaleType;
   quantity: number;
   minQuantity?: number;
+  status?: ProductStatus;
 }
 
-export interface ProductCreatePayload {
+export interface ProductAddPayload {
+  productName: string;
+  capacity: string;
+  categoryId: number;
+  details: IProductDetail[];
+}
+
+export interface ProductEditPayload {
+  productId: number;
   productName: string;
   capacity: string;
   categoryId: number;
