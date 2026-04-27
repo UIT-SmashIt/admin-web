@@ -1,5 +1,6 @@
 import type {SaleType} from "../const/saleType.const.ts";
 import type {ProductStatus} from "../const/productStatus.const.ts";
+import type {ImportStatus} from "../const/importStatus.const.ts";
 
 export interface IProduct {
   productId: number;
@@ -21,6 +22,16 @@ export interface IProductDetail {
   status?: ProductStatus;
 }
 
+export interface IProductImport {
+  importId: number;
+  quantity: number;
+  note: string;
+  status: ImportStatus;
+  updatedAt: string;
+  productDetailId: number;
+  productName: string;
+}
+
 export interface ProductAddPayload {
   productName: string;
   capacity: string;
@@ -34,6 +45,12 @@ export interface ProductEditPayload {
   capacity: string;
   categoryId: number;
   details: IProductDetail[];
+}
+
+export interface ProductImportAddPayload {
+  quantity: number;
+  note: string;
+  productDetailId: number;
 }
 
 /*

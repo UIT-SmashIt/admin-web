@@ -6,11 +6,11 @@ import {
 } from "../hooks/useProductCategory.ts";
 import type {ProductCategoryReq, IProductCategory} from "../types/productCategory.type.ts";
 import { Spin } from 'antd';
-import {useAddProduct, useEditProduct, useFetchProducts} from "../hooks/useProduct.ts";
+import {useAddProduct, useAddProductImport, useEditProduct, useFetchProducts} from "../hooks/useProduct.ts";
 import type {
   IProduct,
   IProductDetail, ProductAddPayload,
-  ProductEditPayload,
+  ProductEditPayload, ProductImportAddPayload,
 } from "../types/product.type.ts";
 import {SaleType} from "../const/saleType.const.ts";
 
@@ -556,53 +556,34 @@ function AdjustQtyModal({ item, onSave, onClose }: {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DELETE CONFIRM
-// ═══════════════════════════════════════════════════════════════
-
-function DeleteConfirm({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) {
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.42)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: 16, width: 340, padding: '24px', textAlign: 'center', fontFamily: "'Be Vietnam Pro', sans-serif", boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>🗑️</div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 6 }}>Xóa sản phẩm?</div>
-        <div style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>Sản phẩm <strong style={{ color: '#1a1a1a' }}>{name}</strong> và tất cả đơn vị sẽ bị xóa vĩnh viễn.</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onConfirm} style={{ flex: 1, padding: '11px', borderRadius: 10, border: 'none', background: '#A32D2D', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>Xóa</button>
-          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: 10, border: '1.5px solid #e0e0e0', background: '#fff', color: '#555', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit' }}>Hủy</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════
 // IMPORT VIEW
 // ═══════════════════════════════════════════════════════════════
 
 function ImportView({ items, onBack, onImport }: {
-  items: StockItem[]; onBack: () => void;
-  onImport: (record: ImportRecord) => void;
+  items: IProduct[];
+  onBack: () => void;
+  onImport: (record: ProductImportAddPayload) => void;
 }) {
   const [selItemId, setSelItemId] = useState<number | null>(null);
   const [selVariantId, setSelVariantId] = useState<number | null>(null);
-  const [qty, setQty] = useState('');
+  const [qty, setQty] = useState(0);
   const [note, setNote] = useState('');
   const [done, setDone] = useState(false);
 
-  const selItem = items.find(i => i.id === selItemId) ?? null;
-  const selVariant = selItem?.variants.find(v => v.id === selVariantId) ?? null;
+  const selItem = items.find(i => i.productId === selItemId) ?? null;
+  const selVariant = selItem?.details.find(v => v.productDetailId === selVariantId) ?? null;
   const canSubmit = !!(selItemId && selVariantId && qty && +qty > 0);
 
   const handleSubmit = () => {
     if (!canSubmit || !selItem || !selVariant) return;
-    onImport({ id: genId(), itemId: selItem.id, itemName: selItem.name, variantId: selVariant.id, unit: selVariant.unit, qty: +qty, note, importedAt: new Date().toLocaleString('vi-VN') });
+    onImport({ quantity: qty, note, productDetailId: selVariantId });
     setDone(true);
-    setTimeout(() => { setDone(false); setSelItemId(null); setSelVariantId(null); setQty(''); setNote(''); }, 1600);
+    setTimeout(() => { setDone(false); setSelItemId(null); setSelVariantId(null); setQty(0); setNote(''); }, 1600);
   };
 
   const grouped = useMemo(() => {
-    const m: Record<string, StockItem[]> = {};
-    items.forEach(item => { if (!m[item.category]) m[item.category] = []; m[item.category].push(item); });
+    const m: Record<string, IProduct[]> = {};
+    items.forEach(item => { if (!m[item.categoryId]) m[item.categoryId] = []; m[item.categoryId].push(item); });
     return m;
   }, [items]);
 
@@ -621,36 +602,36 @@ function ImportView({ items, onBack, onImport }: {
               <div key={cat}>
                 <div style={{ fontSize: 10.5, color: '#888', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', padding: '6px 0 3px' }}>{cat}</div>
                 {catItems.map(item => (
-                  <button key={item.id} onClick={() => { setSelItemId(item.id); setSelVariantId(item.variants[0]?.id ?? null); }}
+                  <button key={item.productId} onClick={() => { setSelItemId(item.productId); setSelVariantId(item.details[0]?.productDetailId ?? null); }}
                     style={{
                       width: '100%', padding: '10px 12px', borderRadius: 9, marginBottom: 4, cursor: 'pointer', fontFamily: 'inherit',
-                      border: `1.5px solid ${selItemId === item.id ? '#D4840A' : '#e8e8e8'}`,
-                      background: selItemId === item.id ? '#FFFBF5' : '#fafafa',
+                      border: `1.5px solid ${selItemId === item.productId ? '#D4840A' : '#e8e8e8'}`,
+                      background: selItemId === item.productId ? '#FFFBF5' : '#fafafa',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.12s',
                     }}>
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: selItemId === item.id ? 600 : 400, color: selItemId === item.id ? '#D4840A' : '#1a1a1a', textAlign: 'left' as const }}>{item.name}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: selItemId === item.productId ? 600 : 400, color: selItemId === item.productId ? '#D4840A' : '#1a1a1a', textAlign: 'left' as const }}>{item.productName}</div>
                       {item.capacity && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{item.capacity}</div>}
                     </div>
-                    <div style={{ fontSize: 11, color: '#bbb' }}>{item.variants.map(v => v.unit).join(' / ')}</div>
+                    <div style={{ fontSize: 11, color: '#bbb' }}>{item.details.map(v => v.unit).join(' / ')}</div>
                   </button>
                 ))}
               </div>
             ))}
           </div>
         </div>
-        {selItem && selItem.variants.length > 1 && (
+        {selItem && selItem.details.length > 1 && (
           <div>
             <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 6, fontWeight: 600 }}>CHỌN ĐƠN VỊ <span style={{ color: '#D4840A' }}>*</span></label>
             <div style={{ display: 'flex', gap: 8 }}>
-              {selItem.variants.map(v => (
-                <button key={v.id} onClick={() => setSelVariantId(v.id)} style={{
+              {selItem.details.map(v => (
+                <button key={v.productDetailId} onClick={() => setSelVariantId(v.productDetailId)} style={{
                   flex: 1, padding: '9px', borderRadius: 9, fontSize: 12.5, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center' as const,
-                  border: `1.5px solid ${selVariantId === v.id ? '#D4840A' : '#e0e0e0'}`,
-                  background: selVariantId === v.id ? '#FFF3E0' : '#fafafa',
-                  color: selVariantId === v.id ? '#D4840A' : '#666', fontWeight: selVariantId === v.id ? 700 : 400,
+                  border: `1.5px solid ${selVariantId === v.productDetailId ? '#D4840A' : '#e0e0e0'}`,
+                  background: selVariantId === v.productDetailId ? '#FFF3E0' : '#fafafa',
+                  color: selVariantId === v.productDetailId ? '#D4840A' : '#666', fontWeight: selVariantId === v.productDetailId ? 700 : 400,
                 }}>
-                  {v.unit}<br /><span style={{ fontSize: 10.5 }}>{fmt(v.price)}đ · Tồn {v.qty}</span>
+                  {v.unit}<br /><span style={{ fontSize: 10.5 }}>{fmt(v.unitPrice)}đ · Tồn {v.quantity}</span>
                 </button>
               ))}
             </div>
@@ -662,15 +643,15 @@ function ImportView({ items, onBack, onImport }: {
         <div style={{ fontSize: 11.5, fontWeight: 600, color: '#aaa', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>Thông tin nhập</div>
         {selVariant && (
           <div style={{ padding: '10px 12px', borderRadius: 9, background: '#fff', border: '1px solid #e8e8e8', fontSize: 12.5 }}>
-            <div style={{ fontWeight: 600, color: '#1a1a1a', marginBottom: 3 }}>{selItem?.name}</div>
+            <div style={{ fontWeight: 600, color: '#1a1a1a', marginBottom: 3 }}>{selItem?.productName}</div>
             <div style={{ color: '#666' }}>Đơn vị: <strong>{selVariant.unit}</strong></div>
-            <div style={{ color: '#666' }}>Giá: <strong>{fmt(selVariant.price)}đ</strong></div>
-            <div style={{ color: '#666' }}>Tồn hiện tại: <strong style={{ color: selVariant.qty < 10 ? '#A32D2D' : '#22863a' }}>{selVariant.qty}</strong></div>
+            <div style={{ color: '#666' }}>Giá: <strong>{fmt(selVariant.unitPrice)}đ</strong></div>
+            <div style={{ color: '#666' }}>Tồn hiện tại: <strong style={{ color: selVariant.quantity < 10 ? '#A32D2D' : '#22863a' }}>{selVariant.quantity}</strong></div>
           </div>
         )}
         <div>
           <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>SỐ LƯỢNG NHẬP <span style={{ color: '#D4840A' }}>*</span></label>
-          <input type="number" min={1} value={qty} onChange={e => setQty(e.target.value)} placeholder="0"
+          <input type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))} placeholder="0"
             style={getInpStyle(!!qty)} onFocus={focusOrange} onBlur={blurGray} />
         </div>
         <div>
@@ -680,7 +661,7 @@ function ImportView({ items, onBack, onImport }: {
         </div>
         {selVariant && qty && +qty > 0 && (
           <div style={{ padding: '8px 12px', borderRadius: 9, background: '#F0FDF4', border: '1px solid #BBF7D0', fontSize: 12.5, color: '#166534' }}>
-            Sau nhập: <strong>{selVariant.qty + +qty} {selVariant.unit}</strong>
+            Sau nhập: <strong>{selVariant.quantity + +qty} {selVariant.unit}</strong>
           </div>
         )}
         <div style={{ flex: 1 }} />
@@ -747,10 +728,10 @@ function HistoryModal({ history, onClose }: { history: ImportRecord[]; onClose: 
 // STOCK LIST VIEW
 // ═══════════════════════════════════════════════════════════════
 
-function StockListView({ items, categories, onImport, onShowHistory, onAddItem, onEditItem, onDeleteItem, onAdjustQty, onManageCategories }: {
+function StockListView({ items, categories, onImport, onShowHistory, onAddItem, onEditItem, onAdjustQty, onManageCategories }: {
   items: IProduct[]; categories: IProductCategory[]; onImport: () => void; onShowHistory: () => void;
   onAddItem: () => void; onEditItem: (i: IProduct) => void;
-  onDeleteItem: (i: IProduct) => void; onAdjustQty: (i: IProduct) => void;
+  onAdjustQty: (i: IProduct) => void;
   onManageCategories: () => void;
 }) {
   const [search, setSearch] = useState('');
@@ -886,9 +867,6 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
                             <button onClick={() => onEditItem(item)} title="Sửa" style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #e8e8e8', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, transition: 'all 0.12s' }}
                               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFF3E0'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#D4840A'; }}
                               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#fff'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8'; }}>✏️</button>
-                            <button onClick={() => onDeleteItem(item)} title="Xóa" style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid #e8e8e8', background: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, transition: 'all 0.12s' }}
-                              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#FFF5F5'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#FECDD3'; }}
-                              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#fff'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8'; }}>🗑️</button>
                           </div>
                         )}
                       </td>
@@ -916,12 +894,12 @@ export default function KhoDichVu() {
   const { mutate: addProduct } = useAddProduct();
   const { mutate: editProduct } = useEditProduct();
   const [history, setHistory] = useState<ImportRecord[]>(INITIAL_HISTORY);
+  const { mutate: addImport } = useAddProductImport();
   const { data: categories, isLoading: categoriesLoading} = useFetchProductCategories();
   const { mutate: addCategory } = useAddProductCategory();
   const { mutate: editCategory } = useEditProductCategory();
   const [view, setView] = useState<View>('list');
   const [itemModal, setItemModal] = useState<{ mode: ItemModalMode; item: IProduct | null }>({ mode: null, item: null });
-  const [deleteTarget, setDeleteTarget] = useState<IProduct | undefined | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<IProduct | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
@@ -948,9 +926,9 @@ export default function KhoDichVu() {
 
   const itemCountByCategory = useMemo(() => {
     const m: Record<string, number> = {};
-    items.forEach(i => { m[i.category] = (m[i.category] ?? 0) + 1; });
+    (products ?? []).forEach(i => { m[i.categoryId] = (m[i.categoryId] ?? 0) + 1; });
     return m;
-  }, [items]);
+  }, [products]);
 
   // ── CRUD: swap these with API calls ───────────────────────────
 
@@ -960,18 +938,8 @@ export default function KhoDichVu() {
   };
 
   const handleEditItem = (product: ProductEditPayload) => {
-    // await api.put(`/inventory/items/${updated.id}`, updated)
-    // setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
     editProduct({id: product.productId, data: product})
     showToast('✓ Đã cập nhật: ' + product.productName);
-  };
-
-  const handleDeleteItem = (id: number | undefined | null) => {
-    // await api.delete(`/inventory/items/${id}`)
-    const item = items.find(i => i.id === id);
-    setItems(prev => prev.filter(i => i.id !== id));
-    setDeleteTarget(null);
-    showToast('🗑 Đã xóa: ' + item?.name);
   };
 
   const handleAdjustQty = (itemId: number | undefined, variantId: number | undefined, delta: number, note: string) => {
@@ -990,10 +958,9 @@ export default function KhoDichVu() {
     showToast(`✓ ${delta > 0 ? 'Nhập +' + delta : 'Xuất ' + delta} đơn vị`);
   };
 
-  const handleImport = (record: ImportRecord) => {
+  const handleImport = (record: ProductImportAddPayload) => {
     // await api.post('/inventory/import', record)
-    handleAdjustQty(record.itemId, record.variantId, record.qty, record.note);
-    setView('list');
+    addImport(record);
   };
 
   if (categoriesLoading || productsLoading) { return <Spin fullscreen /> }
@@ -1016,9 +983,6 @@ export default function KhoDichVu() {
           onAdd={handleAddItem}
           onEdit={handleEditItem}
           onClose={() => setItemModal({ mode: null, item: null })} />
-      )}
-      {deleteTarget && (
-        <DeleteConfirm name={deleteTarget.productName} onConfirm={() => handleDeleteItem(deleteTarget.productId)} onClose={() => setDeleteTarget(null)} />
       )}
       {adjustTarget && (
         <AdjustQtyModal item={adjustTarget} onSave={handleAdjustQty} onClose={() => setAdjustTarget(null)} />
@@ -1056,12 +1020,11 @@ export default function KhoDichVu() {
             onShowHistory={() => setShowHistory(true)}
             onAddItem={() => setItemModal({ mode: 'add', item: null })}
             onEditItem={item => setItemModal({ mode: 'edit', item })}
-            onDeleteItem={item => setDeleteTarget(item)}
             onAdjustQty={item => setAdjustTarget(item)}
             onManageCategories={() => setShowCategoryManager(true)}
           />
         ) : (
-          <ImportView items={items} onBack={() => setView('list')} onImport={handleImport} />
+          <ImportView items={products ?? []} onBack={() => setView('list')} onImport={handleImport} />
         )}
       </div>
     </div>
