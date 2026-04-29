@@ -47,6 +47,11 @@ export interface ProductEditPayload {
   details: IProductDetail[];
 }
 
+export interface ProductEditQuantityPayload {
+  productDetailId: number;
+  quantity: number;
+}
+
 export interface ProductImportAddPayload {
   quantity: number;
   note: string;

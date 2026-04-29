@@ -6,13 +6,20 @@ import {
 } from "../hooks/useProductCategory.ts";
 import type {ProductCategoryReq, IProductCategory} from "../types/productCategory.type.ts";
 import { Spin } from 'antd';
-import {useAddProduct, useAddProductImport, useEditProduct, useFetchProducts} from "../hooks/useProduct.ts";
+import {
+  useAddProduct,
+  useAddProductImport,
+  useEditProduct,
+  useEditProductQuantity, useFetchProductImports,
+  useFetchProducts
+} from "../hooks/useProduct.ts";
 import type {
   IProduct,
-  IProductDetail, ProductAddPayload,
-  ProductEditPayload, ProductImportAddPayload,
+  IProductDetail, IProductImport, ProductAddPayload,
+  ProductEditPayload, ProductEditQuantityPayload, ProductImportAddPayload,
 } from "../types/product.type.ts";
 import {SaleType} from "../const/saleType.const.ts";
+import {formatDateTime} from "../utils/FormatDate.ts";
 
 // ═══════════════════════════════════════════════════════════════
 // TYPES  (export để dùng ở các trang khác, VD: BanHang)
@@ -24,27 +31,6 @@ export interface StockVariant {
   price: number;
   saleType: 'Sỉ' | 'Lẻ';
   qty: number;
-}
-
-export interface StockItem {
-  id: number;
-  name: string;
-  category: string;
-  capacity: string;
-  variants: StockVariant[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ImportRecord {
-  id: number;
-  itemId: number;
-  itemName: string;
-  variantId: number;
-  unit: string;
-  qty: number;
-  note: string;
-  importedAt: string;
 }
 
 type View = 'list' | 'import';
@@ -71,34 +57,11 @@ const PALETTE: { color: string; text: string }[] = [
   { color: '#E0F7FA', text: '#006064' },
   { color: '#FFFDE7', text: '#F57F17' },
 ];
-
-// ═══════════════════════════════════════════════════════════════
-// MOCK DATA
-// ═══════════════════════════════════════════════════════════════
-
-const INITIAL_ITEMS: StockItem[] = [
-  { id: 1, name: 'Coca Cola', category: 'Nước', capacity: '330ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 11, unit: 'Chai', price: 12000, saleType: 'Lẻ', qty: 20 }, { id: 12, unit: 'Thùng', price: 120000, saleType: 'Sỉ', qty: 5 }] },
-  { id: 2, name: 'Pepsi', category: 'Nước', capacity: '330ml', createdAt: '01/04/2026', updatedAt: '08/04/2026', variants: [{ id: 21, unit: 'Chai', price: 11000, saleType: 'Lẻ', qty: 20 }] },
-  { id: 3, name: 'Aquafina', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '07/04/2026', variants: [{ id: 31, unit: 'Chai', price: 8000, saleType: 'Lẻ', qty: 20 }] },
-  { id: 4, name: 'Cầu Yonex Loại 1', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '06/04/2026', variants: [{ id: 41, unit: 'Hộp', price: 250000, saleType: 'Sỉ', qty: 50 }, { id: 42, unit: 'Trái', price: 25000, saleType: 'Lẻ', qty: 20 }] },
-  { id: 5, name: 'Cầu nhựa RSL', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '06/04/2026', variants: [{ id: 51, unit: 'Hộp', price: 200000, saleType: 'Sỉ', qty: 40 }, { id: 52, unit: 'Trái', price: 20000, saleType: 'Lẻ', qty: 10 }] },
-  { id: 6, name: 'Vợt Victor JS-12', category: 'Vợt', capacity: '', createdAt: '02/04/2026', updatedAt: '06/04/2026', variants: [{ id: 61, unit: 'Cái', price: 350000, saleType: 'Lẻ', qty: 8 }] },
-  { id: 7, name: 'Quấn cán Li-Ning', category: 'Phụ kiện', capacity: '', createdAt: '03/04/2026', updatedAt: '06/04/2026', variants: [{ id: 71, unit: 'Cuộn', price: 35000, saleType: 'Lẻ', qty: 30 }] },
-];
-
-const INITIAL_HISTORY: ImportRecord[] = [
-  { id: 1, itemId: 1, itemName: 'Coca Cola', variantId: 11, unit: 'Chai', qty: 50, note: 'Nhập kho sáng', importedAt: '09/04/2026 08:30' },
-  { id: 2, itemId: 4, itemName: 'Cầu Yonex Loại 1', variantId: 41, unit: 'Hộp', qty: 20, note: '', importedAt: '08/04/2026 14:00' },
-  { id: 3, itemId: 3, itemName: 'Aquafina', variantId: 31, unit: 'Chai', qty: 100, note: 'Đợt 2', importedAt: '07/04/2026 09:00' },
-  { id: 4, itemId: 6, itemName: 'Vợt Victor JS-12', variantId: 61, unit: 'Cái', qty: 5, note: '', importedAt: '06/04/2026 16:30' },
-];
-
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
 const fmt = (n: number) => n.toLocaleString('vi-VN');
-const nowStr = () => new Date().toLocaleDateString('vi-VN');
 let _nextId = 200;
 const genId = () => ++_nextId;
 
@@ -462,13 +425,12 @@ function ItemModal({ mode, item, categories, onAdd, onEdit, onClose }: {
 
 function AdjustQtyModal({ item, onSave, onClose }: {
   item: IProduct;
-  onSave: (itemId: number | undefined, variantId: number | undefined, delta: number, note: string) => void;
+  onSave: (itemId: number, payload: ProductEditQuantityPayload) => void;
   onClose: () => void;
 }) {
   const [selVariantId, setSelVariantId] = useState(item.details[0]?.productDetailId ?? undefined);
   const [mode, setMode] = useState<'+' | '-'>('+');
   const [delta, setDelta] = useState(0);
-  const [note, setNote] = useState('');
   const variant = item.details.find(v => v.productDetailId === selVariantId);
   const newQty = variant ? Math.max(0, variant.quantity + (mode === '+' ? delta : -delta)) : 0;
 
@@ -538,13 +500,14 @@ function AdjustQtyModal({ item, onSave, onClose }: {
               onFocus={focusOrange} onBlur={blurGray} placeholder="0" />
             <button onClick={() => setDelta(delta + 1)} style={{ width: 36, height: 36, borderRadius: 9, border: '1.5px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 18, fontWeight: 700, color: '#555', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
           </div>
-          {/* Note */}
-          <div>
-            <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>GHI CHÚ</label>
-            <input value={note} onChange={e => setNote(e.target.value)} placeholder="VD: Nhập từ kho, hàng hỏng..."
-              style={getInpStyle(!!note)} onFocus={focusOrange} onBlur={blurGray} />
-          </div>
-          <button onClick={() => { if (delta > 0) { onSave(item.productId, selVariantId, mode === '+' ? delta : -delta, note); onClose(); } }}
+          <button 
+            onClick={() => {
+              if (delta > 0 && selVariantId) {
+                const finalQuantity = mode === '+' ? delta : -delta;
+                onSave(item.productId, {productDetailId: selVariantId, quantity: finalQuantity});
+                onClose();
+              }
+            }}
             disabled={delta === 0}
             style={{ padding: '12px', borderRadius: 10, border: 'none', background: delta > 0 ? '#D4840A' : '#e0e0e0', color: '#fff', fontWeight: 700, fontSize: 14, cursor: delta > 0 ? 'pointer' : 'default', fontFamily: 'inherit' }}>
             Xác nhận
@@ -682,7 +645,7 @@ function ImportView({ items, onBack, onImport }: {
 // HISTORY MODAL
 // ═══════════════════════════════════════════════════════════════
 
-function HistoryModal({ history, onClose }: { history: ImportRecord[]; onClose: () => void }) {
+function HistoryModal({ history, onClose }: { history: IProductImport[]; onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ background: '#fff', borderRadius: 16, width: 600, boxShadow: '0 20px 60px rgba(0,0,0,0.18)', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }} onClick={e => e.stopPropagation()}>
@@ -697,7 +660,7 @@ function HistoryModal({ history, onClose }: { history: ImportRecord[]; onClose: 
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: '#fafafa' }}>
-                {['Thời gian', 'Mặt hàng', 'Đơn vị', 'Số lượng', 'Ghi chú'].map(h => (
+                {['Thời gian', 'Mặt hàng', 'Số lượng', 'Ghi chú'].map(h => (
                   <th key={h} style={{ padding: '9px 14px', textAlign: 'left', color: '#888', fontWeight: 500, fontSize: 12, borderBottom: '1px solid #f0f0ee' }}>{h}</th>
                 ))}
               </tr>
@@ -706,13 +669,13 @@ function HistoryModal({ history, onClose }: { history: ImportRecord[]; onClose: 
               {history.length === 0 ? (
                 <tr><td colSpan={5} style={{ padding: '32px', textAlign: 'center', color: '#bbb', fontSize: 13 }}>Chưa có lịch sử</td></tr>
               ) : [...history].reverse().map(h => (
-                <tr key={h.id} style={{ borderBottom: '0.5px solid #f5f5f3' }}
+                <tr key={h.importId} style={{ borderBottom: '0.5px solid #f5f5f3' }}
                   onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#fafaf8'}
                   onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}>
-                  <td style={{ padding: '10px 14px', color: '#888', fontSize: 11.5, whiteSpace: 'nowrap' as const }}>{h.importedAt}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 500, color: '#1a1a1a' }}>{h.itemName}</td>
-                  <td style={{ padding: '10px 14px', color: '#666' }}>{h.unit}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: h.qty > 0 ? '#22863a' : '#A32D2D' }}>{h.qty > 0 ? '+' : ''}{h.qty}</td>
+                  <td style={{ padding: '10px 14px', color: '#888', fontSize: 11.5, whiteSpace: 'nowrap' as const }}>{formatDateTime(h.updatedAt)}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 500, color: '#1a1a1a' }}>{h.productName}</td>
+                  {/*<td style={{ padding: '10px 14px', color: '#666' }}>{h.unit}</td>*/}
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#22863a' }}>{h.quantity}</td>
                   <td style={{ padding: '10px 14px', color: '#aaa', fontSize: 12 }}>{h.note || '—'}</td>
                 </tr>
               ))}
@@ -889,11 +852,11 @@ function StockListView({ items, categories, onImport, onShowHistory, onAddItem, 
 // ═══════════════════════════════════════════════════════════════
 
 export default function KhoDichVu() {
-  const [items, setItems] = useState<StockItem[]>(INITIAL_ITEMS);
   const { data: products, isLoading: productsLoading } = useFetchProducts();
   const { mutate: addProduct } = useAddProduct();
   const { mutate: editProduct } = useEditProduct();
-  const [history, setHistory] = useState<ImportRecord[]>(INITIAL_HISTORY);
+  const { mutate: editProductQuantity } = useEditProductQuantity();
+  const { data: imports, isLoading: importsLoading} = useFetchProductImports();
   const { mutate: addImport } = useAddProductImport();
   const { data: categories, isLoading: categoriesLoading} = useFetchProductCategories();
   const { mutate: addCategory } = useAddProductCategory();
@@ -942,9 +905,10 @@ export default function KhoDichVu() {
     showToast('✓ Đã cập nhật: ' + product.productName);
   };
 
-  const handleAdjustQty = (itemId: number | undefined, variantId: number | undefined, delta: number, note: string) => {
+  const handleAdjustQty = (itemId: number, payload: ProductEditQuantityPayload) => {
     // await api.post('/inventory/adjust', { itemId, variantId, delta, note })
-    setItems(prev => prev.map(item => {
+    editProductQuantity({id: itemId, data: payload});
+    /*setItems(prev => prev.map(item => {
       if (item.id !== itemId) return item;
       return { ...item, updatedAt: nowStr(), variants: item.variants.map(v => v.id === variantId ? { ...v, qty: Math.max(0, v.qty + delta) } : v) };
     }));
@@ -954,8 +918,8 @@ export default function KhoDichVu() {
       if (item && variant) {
         // setHistory(prev => [...prev, { id: genId(), itemId, itemName: item.name, variantId, unit: variant.unit, qty: delta, note, importedAt: new Date().toLocaleString('vi-VN') }]);
       }
-    }
-    showToast(`✓ ${delta > 0 ? 'Nhập +' + delta : 'Xuất ' + delta} đơn vị`);
+    }*/
+    showToast(`✓ ${payload.quantity > 0 ? 'Nhập +' + payload.quantity : 'Xuất ' + payload} đơn vị`);
   };
 
   const handleImport = (record: ProductImportAddPayload) => {
@@ -963,7 +927,7 @@ export default function KhoDichVu() {
     addImport(record);
   };
 
-  if (categoriesLoading || productsLoading) { return <Spin fullscreen /> }
+  if (categoriesLoading || productsLoading || importsLoading) { return <Spin fullscreen /> }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
@@ -987,7 +951,7 @@ export default function KhoDichVu() {
       {adjustTarget && (
         <AdjustQtyModal item={adjustTarget} onSave={handleAdjustQty} onClose={() => setAdjustTarget(null)} />
       )}
-      {showHistory && <HistoryModal history={history} onClose={() => setShowHistory(false)} />}
+      {showHistory && <HistoryModal history={imports ?? []} onClose={() => setShowHistory(false)} />}
       {showCategoryManager && (
         <CategoryManagerModal
           categories={categories ?? []}
