@@ -1,18 +1,12 @@
 import { useState } from 'react';
 
+import { type StockItem, type StockVariant } from './Inventory';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Product {
-  id: number;
-  maSP: string;
-  name: string;
-  price: number;
-  unit: string;
-  category: string;
-}
-
 interface CartItem {
-  product: Product;
+  item: StockItem;
+  variant: StockVariant;
   qty: number;
 }
 
@@ -30,19 +24,19 @@ type View = 'pos' | 'checkout';
 
 const CATEGORIES = ['Nước', 'Snack', 'Vợt', 'Cầu', 'Phụ kiện'];
 
-const PRODUCTS: Product[] = [
-  { id: 1, maSP: '001', name: 'Nước lọc Aqua', price: 8000, unit: 'Chai', category: 'Nước' },
-  { id: 2, maSP: '002', name: 'Pocari Sweat', price: 15000, unit: 'Chai', category: 'Nước' },
-  { id: 3, maSP: '003', name: 'Red Bull', price: 12000, unit: 'Lon', category: 'Nước' },
-  { id: 4, maSP: '004', name: 'Trà xanh 0°', price: 10000, unit: 'Chai', category: 'Nước' },
-  { id: 5, maSP: '005', name: 'Snack Oishi', price: 5000, unit: 'Gói', category: 'Snack' },
-  { id: 6, maSP: '006', name: 'Bánh mì que', price: 8000, unit: 'Cái', category: 'Snack' },
-  { id: 7, maSP: '101', name: 'Vợt Victor JS-12', price: 350000, unit: 'Cái', category: 'Vợt' },
-  { id: 8, maSP: '102', name: 'Vợt Yonex Astrox', price: 1200000, unit: 'Cái', category: 'Vợt' },
-  { id: 9, maSP: '201', name: 'Cầu Yonex AS-05', price: 220000, unit: 'Hộp', category: 'Cầu' },
-  { id: 10, maSP: '202', name: 'Cầu nhựa RSL', price: 85000, unit: 'Hộp', category: 'Cầu' },
-  { id: 11, maSP: '301', name: 'Quấn cán Li-Ning', price: 35000, unit: 'Cuộn', category: 'Phụ kiện' },
-  { id: 12, maSP: '302', name: 'Băng cổ tay Yonex', price: 45000, unit: 'Đôi', category: 'Phụ kiện' },
+const PRODUCTS: StockItem[] = [
+  { id: 1, name: 'Nước lọc Aqua', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 11, unit: 'Chai', price: 8000, saleType: 'Lẻ', qty: 20 }] },
+  { id: 2, name: 'Pocari Sweat', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 21, unit: 'Chai', price: 15000, saleType: 'Lẻ', qty: 15 }] },
+  { id: 3, name: 'Red Bull', category: 'Nước', capacity: '250ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 31, unit: 'Lon', price: 12000, saleType: 'Lẻ', qty: 25 }] },
+  { id: 4, name: 'Trà xanh 0°', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 41, unit: 'Chai', price: 10000, saleType: 'Lẻ', qty: 30 }] },
+  { id: 5, name: 'Snack Oishi', category: 'Snack', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 51, unit: 'Gói', price: 5000, saleType: 'Lẻ', qty: 50 }] },
+  { id: 6, name: 'Bánh mì que', category: 'Snack', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 61, unit: 'Cái', price: 8000, saleType: 'Lẻ', qty: 40 }] },
+  { id: 7, name: 'Vợt Victor JS-12', category: 'Vợt', capacity: '', createdAt: '02/04/2026', updatedAt: '09/04/2026', variants: [{ id: 71, unit: 'Cái', price: 350000, saleType: 'Lẻ', qty: 8 }] },
+  { id: 8, name: 'Vợt Yonex Astrox', category: 'Vợt', capacity: '', createdAt: '02/04/2026', updatedAt: '09/04/2026', variants: [{ id: 81, unit: 'Cái', price: 1200000, saleType: 'Lẻ', qty: 3 }] },
+  { id: 9, name: 'Cầu Yonex AS-05', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 91, unit: 'Hộp', price: 220000, saleType: 'Sỉ', qty: 50 }] },
+  { id: 10, name: 'Cầu nhựa RSL', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 101, unit: 'Hộp', price: 85000, saleType: 'Sỉ', qty: 40 }] },
+  { id: 11, name: 'Quấn cán Li-Ning', category: 'Phụ kiện', capacity: '', createdAt: '03/04/2026', updatedAt: '09/04/2026', variants: [{ id: 111, unit: 'Cuộn', price: 35000, saleType: 'Lẻ', qty: 30 }] },
+  { id: 12, name: 'Băng cổ tay Yonex', category: 'Phụ kiện', capacity: '', createdAt: '03/04/2026', updatedAt: '09/04/2026', variants: [{ id: 121, unit: 'Đôi', price: 45000, saleType: 'Lẻ', qty: 25 }] },
 ];
 
 const HISTORY: OrderHistory[] = [
@@ -316,7 +310,7 @@ function CheckoutView({
   const [showCash, setShowCash] = useState(false);
   const [promoExpanded, setPromoExpanded] = useState(false);
 
-  const subtotal = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.variant.price * i.qty, 0);
   const discountAmt = Math.round(subtotal * discount / 100);
   const total = subtotal - discountAmt;
   const rounded = Math.ceil(total / 500) * 500;
@@ -520,20 +514,20 @@ function POSView({
   onClear,
 }: {
   cart: CartItem[];
-  onAddToCart: (p: Product) => void;
-  onQtyChange: (id: number, qty: number) => void;
-  onRemove: (id: number) => void;
+  onAddToCart: (item: StockItem, variant: StockVariant) => void;
+  onQtyChange: (itemId: number, variantId: number, qty: number) => void;
+  onRemove: (itemId: number, variantId: number) => void;
   onCheckout: () => void;
   onClear: () => void;
 }) {
   const [category, setCategory] = useState('Nước');
   const [showHistory, setShowHistory] = useState(false);
-  const [selectedCartItem, setSelectedCartItem] = useState<number | null>(null);
+  const [selectedCartItem, setSelectedCartItem] = useState<{ itemId: number; variantId: number } | null>(null);
 
   const filtered = PRODUCTS.filter(p => p.category === category);
-  const total = cart.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const total = cart.reduce((s, i) => s + i.variant.price * i.qty, 0);
   const selectedItem = selectedCartItem !== null
-    ? cart.find(i => i.product.id === selectedCartItem)
+    ? cart.find(i => i.item.id === selectedCartItem.itemId && i.variant.id === selectedCartItem.variantId)
     : null;
 
   return (
@@ -578,10 +572,10 @@ function POSView({
           display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
           alignContent: 'start',
         }}>
-          {filtered.map(p => (
+          {filtered.map(item => (
             <button
-              key={p.id}
-              onClick={() => onAddToCart(p)}
+              key={item.id}
+              onClick={() => onAddToCart(item, item.variants[0])}
               style={{
                 border: '1px solid #ebebeb', borderRadius: 10,
                 padding: '10px 8px', background: '#fafafa',
@@ -609,10 +603,10 @@ function POSView({
                 {category === 'Nước' ? '🥤' : category === 'Snack' ? '🍪' : category === 'Vợt' ? '🏸' : category === 'Cầu' ? '⚪' : '🎽'}
               </div>
               <div style={{ fontSize: 11, color: '#1a1a1a', textAlign: 'center', lineHeight: 1.3, fontWeight: 500 }}>
-                {p.name}
+                {item.name}
               </div>
               <div style={{ fontSize: 11.5, color: '#D4840A', fontWeight: 600 }}>
-                {fmtShort(p.price)}đ
+                {fmtShort(item.variants[0].price)}đ
               </div>
             </button>
           ))}
@@ -707,46 +701,46 @@ function POSView({
                 <tbody>
                   {cart.map((item, i) => (
                     <tr
-                      key={item.product.id}
-                      onClick={() => setSelectedCartItem(selectedCartItem === item.product.id ? null : item.product.id)}
+                      key={`${item.item.id}-${item.variant.id}`}
+                      onClick={() => setSelectedCartItem(selectedCartItem?.itemId === item.item.id && selectedCartItem?.variantId === item.variant.id ? null : { itemId: item.item.id, variantId: item.variant.id })}
                       style={{
                         borderBottom: '0.5px solid #f5f5f5',
-                        background: selectedCartItem === item.product.id ? '#FFF9F0' : '',
+                        background: selectedCartItem?.itemId === item.item.id && selectedCartItem?.variantId === item.variant.id ? '#FFF9F0' : '',
                         cursor: 'pointer', transition: 'background 0.1s',
                       }}
                       onMouseEnter={e => {
-                        if (selectedCartItem !== item.product.id)
+                        if (selectedCartItem?.itemId !== item.item.id || selectedCartItem?.variantId !== item.variant.id)
                           (e.currentTarget as HTMLTableRowElement).style.background = '#fafafa';
                       }}
                       onMouseLeave={e => {
-                        if (selectedCartItem !== item.product.id)
+                        if (selectedCartItem?.itemId !== item.item.id || selectedCartItem?.variantId !== item.variant.id)
                           (e.currentTarget as HTMLTableRowElement).style.background = '';
                       }}
                     >
                       <td style={{ padding: '9px 10px', color: '#bbb' }}>{i + 1}</td>
-                      <td style={{ padding: '9px 10px', color: '#888', fontSize: 11 }}>{item.product.maSP}</td>
-                      <td style={{ padding: '9px 10px', color: '#1a1a1a', fontWeight: 500 }}>{item.product.name}</td>
+                      <td style={{ padding: '9px 10px', color: '#888', fontSize: 11 }}>{item.item.id}</td>
+                      <td style={{ padding: '9px 10px', color: '#1a1a1a', fontWeight: 500 }}>{item.item.name}</td>
                       <td style={{ padding: '9px 10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
-                            onClick={e => { e.stopPropagation(); onQtyChange(item.product.id, item.qty - 1); }}
+                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.id, item.variant.id, item.qty - 1); }}
                             style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, color: '#555' }}
                           >−</button>
                           <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 600 }}>{item.qty}</span>
                           <button
-                            onClick={e => { e.stopPropagation(); onQtyChange(item.product.id, item.qty + 1); }}
+                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.id, item.variant.id, item.qty + 1); }}
                             style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, color: '#555' }}
                           >+</button>
                         </div>
                       </td>
-                      <td style={{ padding: '9px 10px', color: '#888' }}>{item.product.unit}</td>
-                      <td style={{ padding: '9px 10px', color: '#555' }}>{fmt(item.product.price)}</td>
+                      <td style={{ padding: '9px 10px', color: '#888' }}>{item.variant.unit}</td>
+                      <td style={{ padding: '9px 10px', color: '#555' }}>{fmt(item.variant.price)}</td>
                       <td style={{ padding: '9px 10px', textAlign: 'right', fontWeight: 600, color: '#1a1a1a' }}>
-                        {fmt(item.product.price * item.qty)}
+                        {fmt(item.variant.price * item.qty)}
                       </td>
                       <td style={{ padding: '9px 6px' }}>
                         <button
-                          onClick={e => { e.stopPropagation(); onRemove(item.product.id); }}
+                          onClick={e => { e.stopPropagation(); onRemove(item.item.id, item.variant.id); }}
                           style={{
                             width: 20, height: 20, borderRadius: 4, border: 'none',
                             background: '#FEE8E8', color: '#A32D2D', cursor: 'pointer',
@@ -792,14 +786,14 @@ function POSView({
         }}>
           {selectedItem ? (
             <>
-              <div style={{ fontWeight: 600, fontSize: 12.5 }}>{selectedItem.product.name}</div>
-              <div style={{ color: '#888' }}>Mã: {selectedItem.product.maSP}</div>
-              <div style={{ color: '#888' }}>ĐV: {selectedItem.product.unit}</div>
+              <div style={{ fontWeight: 600, fontSize: 12.5 }}>{selectedItem.item.name}</div>
+              <div style={{ color: '#888' }}>ID: {selectedItem.item.id}</div>
+              <div style={{ color: '#888' }}>ĐV: {selectedItem.variant.unit}</div>
               <div style={{ color: '#D4840A', fontWeight: 600, marginTop: 4 }}>
-                {fmt(selectedItem.product.price)}đ × {selectedItem.qty}
+                {fmt(selectedItem.variant.price)}đ × {selectedItem.qty}
               </div>
               <div style={{ borderTop: '1px dashed #e8e8e8', marginTop: 4, paddingTop: 4, fontWeight: 700, color: '#1a1a1a' }}>
-                = {fmt(selectedItem.product.price * selectedItem.qty)}đ
+                = {fmt(selectedItem.variant.price * selectedItem.qty)}đ
               </div>
             </>
           ) : (
@@ -815,7 +809,7 @@ function POSView({
           padding: '10px', fontSize: 14, fontWeight: 700,
           color: selectedItem ? '#D4840A' : '#ddd', textAlign: 'center',
         }}>
-          {selectedItem ? fmt(selectedItem.product.price) + 'đ' : '—'}
+          {selectedItem ? fmt(selectedItem.variant.price) + 'đ' : '—'}
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>
@@ -900,20 +894,20 @@ export default function BanHang() {
     setTimeout(() => setToast(null), 2200);
   };
 
-  const addToCart = (p: Product) => {
+  const addToCart = (item: StockItem, variant: StockVariant) => {
     setCart(prev => {
-      const existing = prev.find(i => i.product.id === p.id);
-      if (existing) return prev.map(i => i.product.id === p.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { product: p, qty: 1 }];
+      const existing = prev.find(i => i.item.id === item.id && i.variant.id === variant.id);
+      if (existing) return prev.map(i => i.item.id === item.id && i.variant.id === variant.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { item, variant, qty: 1 }];
     });
   };
 
-  const changeQty = (id: number, qty: number) => {
-    if (qty <= 0) setCart(prev => prev.filter(i => i.product.id !== id));
-    else setCart(prev => prev.map(i => i.product.id === id ? { ...i, qty } : i));
+  const changeQty = (itemId: number, variantId: number, qty: number) => {
+    if (qty <= 0) setCart(prev => prev.filter(i => !(i.item.id === itemId && i.variant.id === variantId)));
+    else setCart(prev => prev.map(i => i.item.id === itemId && i.variant.id === variantId ? { ...i, qty } : i));
   };
 
-  const removeItem = (id: number) => setCart(prev => prev.filter(i => i.product.id !== id));
+  const removeItem = (itemId: number, variantId: number) => setCart(prev => prev.filter(i => !(i.item.id === itemId && i.variant.id === variantId)));
 
   const clearCart = () => { setCart([]); setDiscount(0); setBuyerCode(''); };
 
