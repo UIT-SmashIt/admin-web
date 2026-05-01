@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import {useAddSchedule, useEditSchedule, useFetchSchedules} from "../hooks/useSchedule.ts";
+import { Spin } from 'antd';
+import type {ISchedule, ScheduleAddPayload, ScheduleEditPayload} from "../types/schedule.type.ts";
+import {formatDateToYYYYMMDD, formatNumberToTime, formatTimeToNumber} from "../utils/format-date.ts";
+import type {IAdmin} from "../types/admin.type.ts";
+import {useFetchAdmins} from "../hooks/useAdmin.ts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -287,28 +293,48 @@ function StaffListModal({
 function ShiftModal({
   staffList,
   dayIndex,
+  date,
   existing,
-  onSave,
+  onAdd,
+  onEdit,
   onDelete,
   onClose,
 }: {
-  staffList: Staff[];
+  staffList: IAdmin[];
   dayIndex: number;
-  existing: Shift | null;
-  onSave: (s: Omit<Shift, 'id'>) => void;
+  date?: Date;
+  existing: ISchedule | null;
+  onAdd: (s: ScheduleAddPayload) => void;
+  onEdit: (id: number, s: ScheduleEditPayload) => void;
   onDelete?: (id: number) => void;
   onClose: () => void;
 }) {
-  const [selectedStaff, setSelectedStaff] = useState<number[]>(existing?.staffIds ?? []);
-  const [startHour, setStartHour] = useState(existing?.startHour ?? 6);
-  const [endHour, setEndHour] = useState(existing?.endHour ?? 10);
+  const [selectedStaff, setSelectedStaff] = useState<number[]>(existing?.adminIds ?? []);
+  const [startHour, setStartHour] = useState(formatTimeToNumber(existing?.fromTime) ?? 6);
+  const [endHour, setEndHour] = useState(formatTimeToNumber(existing?.toTime) ?? 10);
 
   const toggleStaff = (id: number) =>
     setSelectedStaff(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
   const handleSave = () => {
     if (!selectedStaff.length || endHour <= startHour) return;
-    onSave({ staffIds: selectedStaff, dayIndex, startHour, endHour });
+    if (existing) {
+      onEdit(
+        existing.scheduleId,
+        {
+          fromTime: formatNumberToTime(startHour),
+          toTime: formatNumberToTime(endHour),
+          adminIds: selectedStaff
+      })
+    } else {
+      onAdd({
+        workDate: formatDateToYYYYMMDD(date),
+        dayOfWeek: dayIndex,
+        fromTime: formatNumberToTime(startHour),
+        toTime: formatNumberToTime(endHour),
+        adminIds: selectedStaff
+      });
+    }
     onClose();
   };
 
@@ -368,19 +394,19 @@ function ShiftModal({
           <div style={{ fontSize: 12, color: '#888', fontWeight: 500, marginBottom: 8 }}>NHÂN VIÊN</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {staffList.map(s => (
-              <button key={s.id} onClick={() => toggleStaff(s.id)} style={selStyle(selectedStaff.includes(s.id))}>
+              <button key={s.adminId} onClick={() => toggleStaff(s.adminId)} style={selStyle(selectedStaff.includes(s.adminId))}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{
                     width: 28, height: 28, borderRadius: '50%',
                     background: s.color + '22', border: `2px solid ${s.color}55`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 10, fontWeight: 700, color: s.color, flexShrink: 0,
-                  }}>{initials(s.name)}</div>
+                  }}>{initials(s.adminName)}</div>
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{s.adminName}</div>
                     <div style={{ fontSize: 11, color: '#aaa', fontWeight: 400 }}>{s.role}</div>
                   </div>
-                  {selectedStaff.includes(s.id) && (
+                  {selectedStaff.includes(s.adminId) && (
                     <span style={{ marginLeft: 'auto', color: '#D4840A', fontSize: 14 }}>✓</span>
                   )}
                 </div>
@@ -399,7 +425,7 @@ function ShiftModal({
             {existing ? '✓ Lưu' : '+ Thêm ca'}
           </button>
           {existing && onDelete && (
-            <button onClick={() => { onDelete(existing.id); onClose(); }} style={{
+            <button onClick={() => { onDelete(existing.scheduleId); onClose(); }} style={{
               padding: '12px 16px', borderRadius: 10, border: 'none',
               background: '#FFF5F5', color: '#A32D2D', fontWeight: 600, fontSize: 13,
               cursor: 'pointer', fontFamily: 'inherit',
@@ -425,11 +451,11 @@ function ScheduleGrid({
   onCellClick,
   onShiftClick,
 }: {
-  staffList: Staff[];
-  shifts: Shift[];
+  staffList: IAdmin[];
+  shifts: ISchedule[];
   weekDates: Date[];
-  onCellClick: (dayIndex: number) => void;
-  onShiftClick: (shift: Shift) => void;
+  onCellClick: ({dayIndex, date}: {dayIndex: number, date: Date}) => void;
+  onShiftClick: (shift: ISchedule) => void;
 }) {
   const HOUR_H = 36; // px per hour
   const COL_W = 110;
@@ -458,7 +484,7 @@ function ScheduleGrid({
 
         {/* Day columns */}
         {weekDates.map((date, di) => {
-          const dayShifts = shifts.filter(s => s.dayIndex === di);
+          const dayShifts = shifts.filter(s => s.dayOfWeek === di);
           const isToday = new Date().toDateString() === date.toDateString();
 
           return (
@@ -491,7 +517,7 @@ function ScheduleGrid({
                 {HOURS.map(h => (
                   <div
                     key={h}
-                    onClick={() => onCellClick(di)}
+                    onClick={() => onCellClick({ dayIndex: di, date})}
                     style={{
                       height: HOUR_H, borderTop: '0.5px solid #f5f5f3',
                       cursor: 'pointer', transition: 'background 0.1s',
@@ -503,13 +529,13 @@ function ScheduleGrid({
 
                 {/* Shift blocks */}
                 {dayShifts.map(shift => {
-                  const startOffset = (shift.startHour - HOURS[0]) * HOUR_H;
-                  const height = (shift.endHour - shift.startHour) * HOUR_H - 2;
-                  const shiftStaff = staffList.filter(s => shift.staffIds.includes(s.id));
+                  const startOffset = (formatTimeToNumber(shift.fromTime) - HOURS[0]) * HOUR_H;
+                  const height = (formatTimeToNumber(shift.toTime) - formatTimeToNumber(shift.fromTime)) * HOUR_H - 2;
+                  const shiftStaff = staffList.filter(s => shift.adminIds.includes(s.adminId));
 
                   return (
                     <div
-                      key={shift.id}
+                      key={shift.scheduleId}
                       onClick={e => { e.stopPropagation(); onShiftClick(shift); }}
                       style={{
                         position: 'absolute', top: startOffset + 1, left: 3, right: 3,
@@ -530,19 +556,19 @@ function ScheduleGrid({
                       }}
                     >
                       <div style={{ fontSize: 10, color: shiftStaff[0]?.color ?? '#666', fontWeight: 600, marginBottom: 3 }}>
-                        {String(shift.startHour).padStart(2,'0')}:00 – {String(shift.endHour).padStart(2,'0')}:00
+                        {shift.fromTime.padStart(2,'0')}:00 – {shift.toTime.padStart(2,'0')}:00
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {shiftStaff.map(s => (
-                          <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <div key={s.adminId} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <div style={{
                               width: 14, height: 14, borderRadius: '50%',
                               background: s.color, flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: 7, color: '#fff', fontWeight: 700,
-                            }}>{s.name[0]}</div>
+                            }}>{s.adminName[0]}</div>
                             <span style={{ fontSize: 10.5, color: '#444', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {s.name.split(' ').slice(-1)[0]}
+                              {s.adminName.split(' ').slice(-1)[0]}
                             </span>
                           </div>
                         ))}
@@ -716,12 +742,19 @@ function HistoryView({
 export default function NhanSu() {
   const [view, setView] = useState<View>('schedule');
   const [staffList, setStaffList] = useState<Staff[]>(INITIAL_STAFF);
+  const { data: admins, isLoading: adminsLoading } = useFetchAdmins();
   const [shifts, setShifts] = useState<Shift[]>(INITIAL_SHIFTS);
+  const { data: schedules, isLoading: schedulesLoading} = useFetchSchedules();
+  const { mutate: addSchedule } = useAddSchedule();
+  const { mutate: editSchedule } = useEditSchedule();
   const [baseDate] = useState(new Date());
   const weekDates = getWeekDates(baseDate);
 
   const [showStaffModal, setShowStaffModal] = useState(false);
-  const [shiftModal, setShiftModal] = useState<{ dayIndex: number; existing: Shift | null } | null>(null);
+  const [shiftModal, setShiftModal] = useState<{ dayIndex: number; date?: Date, existing: ISchedule | null } | null>(null);
+
+  const [toast, setToast] = useState<string | null>(null);
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
 
   const addStaff = (s: Omit<Staff, 'id' | 'color'>) => {
     const id = Math.max(0, ...staffList.map(x => x.id)) + 1;
@@ -735,18 +768,32 @@ export default function NhanSu() {
     setShifts(prev => prev.map(sh => ({ ...sh, staffIds: sh.staffIds.filter(x => x !== id) })).filter(sh => sh.staffIds.length > 0));
   };
 
-  const addShift = (s: Omit<Shift, 'id'>) => {
-    const id = Math.max(0, ...shifts.map(x => x.id)) + 1;
-    setShifts(prev => [...prev, { id, ...s }]);
+  const addShift = (newSchedule: ScheduleAddPayload) => {
+    addSchedule(newSchedule);
+    showToast('✓ Đã thêm lịch: ' + newSchedule.workDate);
+  };
+
+  const editShift = (id: number, schedule: ScheduleEditPayload) => {
+    editSchedule({id, data: schedule});
+    showToast('✓ Đã cập nhật');
   };
 
   const deleteShift = (id: number) => setShifts(prev => prev.filter(x => x.id !== id));
+
+  if (schedulesLoading || adminsLoading) {
+    return <Spin fullscreen/>
+  }
 
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
       background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
     }}>
+      {toast && (
+        <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' as const, pointerEvents: 'none' as const }}>
+          {toast}
+        </div>
+      )}
       {/* Modals */}
       {showStaffModal && (
         <StaffListModal
@@ -759,10 +806,12 @@ export default function NhanSu() {
       )}
       {shiftModal && (
         <ShiftModal
-          staffList={staffList}
+          staffList={admins ?? []}
           dayIndex={shiftModal.dayIndex}
+          date={shiftModal.date}
           existing={shiftModal.existing}
-          onSave={addShift}
+          onAdd={addShift}
+          onEdit={editShift}
           onDelete={shiftModal.existing ? deleteShift : undefined}
           onClose={() => setShiftModal(null)}
         />
@@ -823,11 +872,11 @@ export default function NhanSu() {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {view === 'schedule' ? (
           <ScheduleGrid
-            staffList={staffList}
-            shifts={shifts}
+            staffList={admins ?? []}
+            shifts={schedules ?? []}
             weekDates={weekDates}
-            onCellClick={dayIndex => setShiftModal({ dayIndex, existing: null })}
-            onShiftClick={shift => setShiftModal({ dayIndex: shift.dayIndex, existing: shift })}
+            onCellClick={({dayIndex, date}) => setShiftModal({ dayIndex, date, existing: null })}
+            onShiftClick={shift => setShiftModal({ dayIndex: shift.dayOfWeek, existing: shift })}
           />
         ) : (
           <HistoryView
