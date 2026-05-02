@@ -1,5 +1,5 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
-import {addSchedule, editSchedule, fetchSchedules} from "../api/schedule.api.ts";
+import {addSchedule, editSchedule, fetchSchedules, removeSchedule} from "../api/schedule.api.ts";
 import type {ScheduleAddPayload, ScheduleEditPayload} from "../types/schedule.type.ts";
 
 export const useFetchSchedules = () => {
@@ -29,4 +29,15 @@ export const useEditSchedule = () => {
       queryClient.invalidateQueries({queryKey: ['schedules']});
     },
   });
+}
+
+export const useRemoveSchedule = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: removeSchedule,
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['schedules']});
+    },
+  })
 }

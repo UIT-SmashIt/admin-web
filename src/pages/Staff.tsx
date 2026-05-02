@@ -1,28 +1,17 @@
 import { useState } from 'react';
-import {useAddSchedule, useEditSchedule, useFetchSchedules} from "../hooks/useSchedule.ts";
+import {
+  useAddSchedule,
+  useEditSchedule,
+  useFetchSchedules,
+  useRemoveSchedule
+} from "../hooks/useSchedule.ts";
 import { Spin } from 'antd';
 import type {ISchedule, ScheduleAddPayload, ScheduleEditPayload} from "../types/schedule.type.ts";
 import {formatDateToYYYYMMDD, formatNumberToTime, formatTimeToNumber} from "../utils/format-date.ts";
-import type {IAdmin} from "../types/admin.type.ts";
-import {useFetchAdmins} from "../hooks/useAdmin.ts";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Staff {
-  id: number;
-  name: string;
-  role: string;
-  phone: string;
-  color: string;
-}
-
-interface Shift {
-  id: number;
-  staffIds: number[];
-  dayIndex: number; // 0 = Mon … 6 = Sun
-  startHour: number;
-  endHour: number;
-}
+import type {AdminUpdatePayload, IAdmin} from "../types/admin.type.ts";
+import {useEditAdmin, useFetchAdmins, useRemoveAdmin} from "../hooks/useAdmin.ts";
+import {ColorPalettePicker} from "../components/ColorPalettePicker.tsx";
+import type {AdminRole} from "../const/adminRole.const.ts";
 
 type View = 'schedule' | 'staff-list' | 'history';
 
@@ -31,28 +20,20 @@ type View = 'schedule' | 'staff-list' | 'history';
 const DAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
 const HOURS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 
-const STAFF_COLORS = [
-  '#378ADD', '#D4840A', '#22863a', '#7B1FA2',
-  '#C62828', '#00838F', '#F57F17', '#37474F',
-];
-
 // ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const INITIAL_STAFF: Staff[] = [
-  { id: 1, name: 'Nguyễn Văn An', role: 'Nhân viên', phone: '0901 234 567', color: '#378ADD' },
-  { id: 2, name: 'Trần Thị Bình', role: 'Nhân viên', phone: '0912 345 678', color: '#D4840A' },
-  { id: 3, name: 'Lê Văn Cường', role: 'Quản lý ca', phone: '0923 456 789', color: '#22863a' },
-  { id: 4, name: 'Phạm Thị Dung', role: 'Nhân viên', phone: '0934 567 890', color: '#7B1FA2' },
-];
-
-const INITIAL_SHIFTS: Shift[] = [
-  { id: 1, staffIds: [1, 2], dayIndex: 0, startHour: 6, endHour: 10 },
-  { id: 2, staffIds: [3], dayIndex: 0, startHour: 10, endHour: 14 },
-  { id: 3, staffIds: [1, 3], dayIndex: 1, startHour: 6, endHour: 10 },
-  { id: 4, staffIds: [2, 4], dayIndex: 2, startHour: 17, endHour: 21 },
-  { id: 5, staffIds: [1], dayIndex: 3, startHour: 14, endHour: 21 },
-  { id: 6, staffIds: [2, 3, 4], dayIndex: 5, startHour: 6, endHour: 14 },
-  { id: 7, staffIds: [1, 2], dayIndex: 6, startHour: 17, endHour: 21 },
+const PALETTE: { color: string; text: string }[] = [
+  { color: '#E6F1FB', text: '#1565C0' },
+  { color: '#FFF3E0', text: '#D4840A' },
+  { color: '#F0FBF0', text: '#2E7D32' },
+  { color: '#F9F0FB', text: '#7B1FA2' },
+  { color: '#FFF8E1', text: '#F57F17' },
+  { color: '#FCE4EC', text: '#AD1457' },
+  { color: '#E8F5E9', text: '#2E7D32' },
+  { color: '#E3F2FD', text: '#0D47A1' },
+  { color: '#FBE9E7', text: '#BF360C' },
+  { color: '#F3E5F5', text: '#6A1B9A' },
+  { color: '#E0F7FA', text: '#006064' },
+  { color: '#FFFDE7', text: '#F57F17' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -77,33 +58,46 @@ function initials(name: string) {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
 
+const ADMIN_ROLE_OPTIONS: { value: AdminRole; label: string }[] = [
+  { value: 'Employee', label: 'Nhân viên' },
+  { value: 'Manager', label: 'Quản lý' },
+];
+
 // ─── Staff List Modal ─────────────────────────────────────────────────────────
 
 function StaffListModal({
   staffList,
-  onAdd,
   onEdit,
   onDelete,
   onClose,
 }: {
-  staffList: Staff[];
-  onAdd: (s: Omit<Staff, 'id' | 'color'>) => void;
-  onEdit: (s: Staff) => void;
+  staffList: IAdmin[];
+  onEdit: (id: number, s: AdminUpdatePayload) => void;
   onDelete: (id: number) => void;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<'list' | 'add' | 'edit'>('list');
-  const [editing, setEditing] = useState<Staff | null>(null);
-  const [form, setForm] = useState({ name: '', role: 'Nhân viên', phone: '' });
+  const [mode, setMode] = useState<'list' | 'edit'>('list');
+  const [editing, setEditing] = useState<IAdmin | null>(null);
+  const [form, setForm] = useState<{ name: string, role: AdminRole, email: string, phone: string}>({ name: '', role: "Employee", email: '' , phone: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [selPalette, setSelPalette] = useState<{ color: string; text: string }>(
+    editing ? { color: editing.color, text: editing.color } : PALETTE[0]
+  );
 
-  const openAdd = () => { setForm({ name: '', role: 'Nhân viên', phone: '' }); setMode('add'); };
-  const openEdit = (s: Staff) => { setEditing(s); setForm({ name: s.name, role: s.role, phone: s.phone }); setMode('edit'); };
+  const openEdit = (s: IAdmin) => { setEditing(s); setForm({ name: s.adminName, role: s.role, email: s.email, phone: s.phoneNumber }); setMode('edit'); };
 
   const handleSave = () => {
     if (!form.name.trim()) return;
-    if (mode === 'add') { onAdd(form); setMode('list'); }
-    else if (mode === 'edit' && editing) { onEdit({ ...editing, ...form }); setMode('list'); }
+    onEdit(
+      editing!.adminId,
+      {
+        adminName: form.name,
+        email: form.email,
+        phoneNumber: form.phone,
+        role: form.role,
+        color: selPalette.color
+    });
+    setMode('list');
   };
 
   const inputStyle: React.CSSProperties = {
@@ -145,7 +139,7 @@ function StaffListModal({
             )}
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
-                {mode === 'list' ? 'Danh sách nhân viên' : mode === 'add' ? 'Thêm nhân viên' : 'Sửa thông tin'}
+                {mode === 'list' ? 'Danh sách nhân viên' : 'Sửa thông tin'}
               </div>
               {mode === 'list' && (
                 <div style={{ fontSize: 12, color: '#aaa', marginTop: 1 }}>{staffList.length} nhân viên</div>
@@ -153,19 +147,6 @@ function StaffListModal({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {mode === 'list' && (
-              <button onClick={openAdd} style={{
-                padding: '7px 14px', borderRadius: 8, border: 'none',
-                background: '#D4840A', color: '#fff', fontWeight: 600, fontSize: 12.5,
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-                Thêm mới
-              </button>
-            )}
             <button onClick={onClose} style={{
               width: 30, height: 30, borderRadius: '50%', border: 'none',
               background: '#f5f5f3', cursor: 'pointer', fontSize: 14, color: '#666',
@@ -179,7 +160,7 @@ function StaffListModal({
           {mode === 'list' ? (
             <div style={{ padding: '8px 0' }}>
               {staffList.map(s => (
-                <div key={s.id}
+                <div key={s.adminId}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 14,
                     padding: '12px 22px', borderBottom: '0.5px solid #f5f5f3',
@@ -192,17 +173,17 @@ function StaffListModal({
                   <div style={{
                     width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
                     background: s.color + '22',
-                    border: `2px solid ${s.color}44`,
+                    border: `2px solid ${s.color}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, fontWeight: 700, color: s.color,
                   }}>
-                    {initials(s.name)}
+                    {initials(s.adminName)}
                   </div>
 
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{s.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>{s.adminName}</div>
                     <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                      {s.role} · {s.phone}
+                      {s.role} · {s.phoneNumber}
                     </div>
                   </div>
 
@@ -211,9 +192,9 @@ function StaffListModal({
                       padding: '6px 12px', borderRadius: 7, border: '1px solid #e8e8e8',
                       background: '#fff', color: '#555', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
                     }}>Sửa</button>
-                    {deleteConfirm === s.id ? (
+                    {deleteConfirm === s.adminId ? (
                       <div style={{ display: 'flex', gap: 4 }}>
-                        <button onClick={() => { onDelete(s.id); setDeleteConfirm(null); }} style={{
+                        <button onClick={() => { onDelete(s.adminId); setDeleteConfirm(null); }} style={{
                           padding: '6px 10px', borderRadius: 7, border: 'none',
                           background: '#A32D2D', color: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
                         }}>Xóa</button>
@@ -223,7 +204,7 @@ function StaffListModal({
                         }}>Hủy</button>
                       </div>
                     ) : (
-                      <button onClick={() => setDeleteConfirm(s.id)} style={{
+                      <button onClick={() => setDeleteConfirm(s.adminId)} style={{
                         padding: '6px 12px', borderRadius: 7,
                         border: '1px solid #FECDD3', background: '#FFF5F5',
                         color: '#A32D2D', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
@@ -248,10 +229,12 @@ function StaffListModal({
                 <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
                   VỊ TRÍ
                 </label>
-                <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+                <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as AdminRole }))}
                   style={{ ...inputStyle, appearance: 'none' as const }}>
-                  {['Nhân viên', 'Quản lý ca', 'Kế toán', 'Bảo vệ'].map(r => (
-                    <option key={r} value={r}>{r}</option>
+                  {ADMIN_ROLE_OPTIONS.map(role => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -263,6 +246,7 @@ function StaffListModal({
                   placeholder="09xx xxx xxx" style={inputStyle}
                   onFocus={e => (e.target.style.borderColor = '#D4840A')}
                   onBlur={e => (e.target.style.borderColor = '#e8e8e8')} />
+                <ColorPalettePicker palette={PALETTE} selectedPalette={selPalette} onChange={setSelPalette} />
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button onClick={handleSave} disabled={!form.name.trim()} style={{
@@ -271,7 +255,7 @@ function StaffListModal({
                   color: '#fff', fontWeight: 700, fontSize: 14,
                   cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
                 }}>
-                  {mode === 'add' ? '+ Thêm nhân viên' : '✓ Lưu thay đổi'}
+                  ✓ Lưu thay đổi
                 </button>
                 <button onClick={() => setMode('list')} style={{
                   flex: 1, padding: '12px', borderRadius: 10,
@@ -593,8 +577,8 @@ function HistoryView({
   weekDates,
   onBack,
 }: {
-  staffList: Staff[];
-  shifts: Shift[];
+  staffList: IAdmin[];
+  shifts: ISchedule[];
   weekDates: Date[];
   onBack: () => void;
 }) {
@@ -603,10 +587,10 @@ function HistoryView({
   // Summarize shifts per staff
   const summary = staffList.map(s => ({
     staff: s,
-    totalShifts: shifts.filter(sh => sh.staffIds.includes(s.id)).length,
+    totalShifts: shifts.filter(sh => sh.adminIds.includes(s.adminId)).length,
     totalHours: shifts
-      .filter(sh => sh.staffIds.includes(s.id))
-      .reduce((sum, sh) => sum + (sh.endHour - sh.startHour), 0),
+      .filter(sh => sh.adminIds.includes(s.adminId))
+      .reduce((sum, sh) => sum + (formatTimeToNumber(sh.toTime) - formatTimeToNumber(sh.fromTime)), 0),
   }));
 
   return (
@@ -640,7 +624,7 @@ function HistoryView({
       {/* Summary cards */}
       <div style={{ padding: '16px 20px', display: 'flex', gap: 10, flexWrap: 'wrap', borderBottom: '0.5px solid #f0f0ee', flexShrink: 0 }}>
         {summary.map(({ staff, totalShifts, totalHours }) => (
-          <div key={staff.id} style={{
+          <div key={staff.adminId} style={{
             flex: '1 1 200px', padding: '14px 16px', borderRadius: 12,
             border: '1px solid #ebebeb', background: '#fafafa',
             display: 'flex', gap: 12, alignItems: 'center',
@@ -650,9 +634,9 @@ function HistoryView({
               background: staff.color + '22', border: `2px solid ${staff.color}44`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12, fontWeight: 700, color: staff.color,
-            }}>{initials(staff.name)}</div>
+            }}>{initials(staff.adminName)}</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{staff.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a' }}>{staff.adminName}</div>
               <div style={{ fontSize: 11.5, color: '#888', marginTop: 2 }}>{staff.role}</div>
               <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                 <span style={{
@@ -692,11 +676,11 @@ function HistoryView({
           </thead>
           <tbody>
             {shifts.flatMap(shift =>
-              shift.staffIds.map(sid => {
-                const s = staffList.find(x => x.id === sid);
+              shift.adminIds.map(sid => {
+                const s = staffList.find(x => x.adminId === sid);
                 if (!s) return null;
                 return (
-                  <tr key={`${shift.id}-${sid}`}
+                  <tr key={`${shift.adminIds}-${sid}`}
                     style={{ borderBottom: '0.5px solid #f5f5f3' }}
                     onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#fafaf8'}
                     onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}
@@ -708,22 +692,22 @@ function HistoryView({
                           background: s.color + '22', border: `1.5px solid ${s.color}44`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 9, fontWeight: 700, color: s.color,
-                        }}>{initials(s.name)}</div>
-                        <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{s.name}</span>
+                        }}>{initials(s.adminName)}</div>
+                        <span style={{ fontWeight: 500, color: '#1a1a1a' }}>{s.adminName}</span>
                       </div>
                     </td>
                     <td style={{ padding: '10px 14px', color: '#555' }}>
-                      {DAY_LABELS[shift.dayIndex]} {formatDate(weekDates[shift.dayIndex])}
+                      {DAY_LABELS[shift.dayOfWeek]} {formatDate(weekDates[shift.dayOfWeek])}
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center', color: '#555' }}>
-                      {String(shift.startHour).padStart(2,'0')}:00 – {String(shift.endHour).padStart(2,'0')}:00
+                      {shift.fromTime} – {shift.toTime}
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                       <span style={{
                         background: '#E6F4EC', color: '#22863a',
                         padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                       }}>
-                        {shift.endHour - shift.startHour}h
+                        {formatTimeToNumber(shift.toTime) - formatTimeToNumber(shift.fromTime)}h
                       </span>
                     </td>
                   </tr>
@@ -741,12 +725,13 @@ function HistoryView({
 
 export default function NhanSu() {
   const [view, setView] = useState<View>('schedule');
-  const [staffList, setStaffList] = useState<Staff[]>(INITIAL_STAFF);
   const { data: admins, isLoading: adminsLoading } = useFetchAdmins();
-  const [shifts, setShifts] = useState<Shift[]>(INITIAL_SHIFTS);
+  const { mutate: editAdmin } = useEditAdmin();
+  const { mutate: removeAdmin } = useRemoveAdmin();
   const { data: schedules, isLoading: schedulesLoading} = useFetchSchedules();
   const { mutate: addSchedule } = useAddSchedule();
   const { mutate: editSchedule } = useEditSchedule();
+  const { mutate: removeSchedule } = useRemoveSchedule();
   const [baseDate] = useState(new Date());
   const weekDates = getWeekDates(baseDate);
 
@@ -756,16 +741,13 @@ export default function NhanSu() {
   const [toast, setToast] = useState<string | null>(null);
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
 
-  const addStaff = (s: Omit<Staff, 'id' | 'color'>) => {
-    const id = Math.max(0, ...staffList.map(x => x.id)) + 1;
-    const color = STAFF_COLORS[id % STAFF_COLORS.length];
-    setStaffList(prev => [...prev, { id, color, ...s }]);
-  };
-
-  const editStaff = (s: Staff) => setStaffList(prev => prev.map(x => x.id === s.id ? s : x));
+  const editStaff = (id: number,s: AdminUpdatePayload) => {
+    editAdmin({id, data: s});
+    showToast('✓ Đã cập nhật');
+  }
   const deleteStaff = (id: number) => {
-    setStaffList(prev => prev.filter(x => x.id !== id));
-    setShifts(prev => prev.map(sh => ({ ...sh, staffIds: sh.staffIds.filter(x => x !== id) })).filter(sh => sh.staffIds.length > 0));
+    removeAdmin(id);
+    showToast('✓ Đã xóa');
   };
 
   const addShift = (newSchedule: ScheduleAddPayload) => {
@@ -778,7 +760,10 @@ export default function NhanSu() {
     showToast('✓ Đã cập nhật');
   };
 
-  const deleteShift = (id: number) => setShifts(prev => prev.filter(x => x.id !== id));
+  const deleteShift = (id: number) => {
+    removeSchedule(id);
+    showToast('✓ Đã xóa');
+  }
 
   if (schedulesLoading || adminsLoading) {
     return <Spin fullscreen/>
@@ -797,8 +782,7 @@ export default function NhanSu() {
       {/* Modals */}
       {showStaffModal && (
         <StaffListModal
-          staffList={staffList}
-          onAdd={addStaff}
+          staffList={admins ?? []}
           onEdit={editStaff}
           onDelete={deleteStaff}
           onClose={() => setShowStaffModal(false)}
@@ -880,8 +864,8 @@ export default function NhanSu() {
           />
         ) : (
           <HistoryView
-            staffList={staffList}
-            shifts={shifts}
+            staffList={admins ?? []}
+            shifts={schedules ?? []}
             weekDates={weekDates}
             onBack={() => setView('schedule')}
           />

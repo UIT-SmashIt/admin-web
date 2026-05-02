@@ -12,3 +12,7 @@ export const addSchedule = async (newSchedule: ScheduleAddPayload): Promise<void
 export const editSchedule = async ({id, data}: {id: number, data: ScheduleEditPayload}): Promise<void> => {
   return api.put(`/api/admin/schedule/${id}`, data);
 }
+
+export const removeSchedule = async (id: number): Promise<void> => {
+  return api.delete(`/api/admin/schedule/${id}`);
+}

@@ -8,3 +8,11 @@ export interface IAdmin {
   color: string;
   role: AdminRole
 }
+
+export interface AdminUpdatePayload {
+  adminName: string;
+  email: string;
+  phoneNumber: string;
+  role: AdminRole;
+  color: string;
+}
