@@ -1,5 +1,15 @@
 import { useState } from 'react';
 
+// ─── Scrollbar Styling ────────────────────────────────────────────────────────
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Staff {
@@ -747,6 +757,7 @@ export default function NhanSu() {
       flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
       background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
     }}>
+      <style>{globalStyles}</style>
       {/* Modals */}
       {showStaffModal && (
         <StaffListModal

@@ -2,6 +2,17 @@ import { useState, useEffect } from 'react';
 
 import { type StockItem, type StockVariant } from './Inventory';
 
+// ─── Global Styles ───────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+` as const;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CartItem {
@@ -943,11 +954,13 @@ export default function BanHang() {
   };
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
-      position: 'relative',
-    }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
+        position: 'relative',
+      }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -1011,5 +1024,6 @@ export default function BanHang() {
         )}
       </div>
     </div>
+    </>
   );
 }

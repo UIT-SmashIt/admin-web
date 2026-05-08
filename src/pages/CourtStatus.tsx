@@ -1,5 +1,15 @@
 import { useState } from 'react';
 
+// ─── Global Styles ────────────────────────────────────────────────────────────
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type OrderType = 'daily' | 'fixed';
@@ -266,6 +276,7 @@ function AllCourtsView({
 
   return (
     <>
+      <style>{globalStyles}</style>
       {/* Metric cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 14 }}>
         {metrics.map((m) => (

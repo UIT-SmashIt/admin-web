@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react';
 
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Voucher {
@@ -237,7 +246,9 @@ export default function VoucherPage() {
   const handleDelete = (id: number) => setVouchers(prev => prev.filter(x => x.id !== id));
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5' }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5' }}>
       {modal.mode && <VoucherModal mode={modal.mode} voucher={modal.voucher} onSave={handleSave} onClose={() => setModal({ mode: null, voucher: null })} />}
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDeleteTarget(null)}>
@@ -326,5 +337,6 @@ export default function VoucherPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

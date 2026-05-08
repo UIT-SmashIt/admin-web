@@ -1,5 +1,16 @@
 import { useState, useMemo } from 'react';
 
+// ─── Global Styles ───────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+` as const;
+
 // ═══════════════════════════════════════════════════════════════
 // TYPES  (export để dùng ở các trang khác, VD: BanHang)
 // ═══════════════════════════════════════════════════════════════
@@ -985,7 +996,9 @@ export default function KhoDichVu() {
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {/* Toast */}
       {toast && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' as const, pointerEvents: 'none' as const }}>
@@ -1047,5 +1060,6 @@ export default function KhoDichVu() {
         )}
       </div>
     </div>
+    </>
   );
 }

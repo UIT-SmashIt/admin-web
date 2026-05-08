@@ -1,6 +1,15 @@
 import { useState, useMemo } from 'react';
 import { COURTS, PAYMENT_STATUS_CONFIG, type PaymentStatus, fmt } from '../pages/Lịch đặt/LichDatTypes';
 
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ApprovalStatus = 'pending' | 'approved' | 'rejected';
@@ -113,16 +122,9 @@ function DetailDrawer({ order, onApprove, onReject, onClose }: {
   order: Order; onApprove: () => void; onReject: () => void; onClose: () => void;
 }) {
   const court = COURTS.find(c => c.id === order.courtId);
-  const [showRejectModal, setShowRejectModal] = useState(false);
 
   return (
     <>
-      {showRejectModal && (
-        <RejectModal
-          onConfirm={reason => { onReject(); setShowRejectModal(false); }}
-          onClose={() => setShowRejectModal(false)}
-        />
-      )}
       <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.3)' }} onClick={onClose} />
       <div style={{
         position: 'fixed', right: 0, top: 0, bottom: 0, zIndex: 301,
@@ -192,7 +194,7 @@ function DetailDrawer({ order, onApprove, onReject, onClose }: {
             <button onClick={onApprove} style={{ flex: 1, padding: '13px', borderRadius: 10, border: 'none', background: '#22863a', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               ✅ Duyệt đơn
             </button>
-            <button onClick={() => setShowRejectModal(true)} style={{ flex: 1, padding: '13px', borderRadius: 10, border: '1.5px solid #FECDD3', background: '#FFF5F5', color: '#A32D2D', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <button onClick={onReject} style={{ flex: 1, padding: '13px', borderRadius: 10, border: '1.5px solid #FECDD3', background: '#FFF5F5', color: '#A32D2D', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               ❌ Từ chối
             </button>
           </div>
@@ -272,7 +274,9 @@ export default function DuyetDon() {
   };
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5' }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5' }}>
       {selectedOrder && (
         <DetailDrawer
           order={selectedOrder}
@@ -344,7 +348,7 @@ export default function DuyetDon() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#fafafa' }}>
-              {['Khách hàng', 'Sân', 'Ngày đặt', 'Trạng thái', 'Tiền sân', 'Thao tác'].map((h, i) => (
+              {['Khách hàng', 'Sân', 'Ngày đặt', 'Trạng thái', 'Tiền sân', 'Thao tác'].map((h) => (
                 <th key={h} style={{ padding: '10px 14px', textAlign: 'left', color: '#999', fontWeight: 600, fontSize: 11.5, borderBottom: '1px solid #ebebeb', letterSpacing: '0.03em' }}>{h}</th>
               ))}
             </tr>
@@ -372,5 +376,6 @@ export default function DuyetDon() {
         </div>
       )}
     </div>
+    </>
   );
 }

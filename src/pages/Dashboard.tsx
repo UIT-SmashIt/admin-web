@@ -1,5 +1,15 @@
 import { useEffect, useRef } from 'react';
 
+// ─── Global Styles ────────────────────────────────────────────────────────────
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface MetricCard {
@@ -207,17 +217,19 @@ function DonutChart() {
 
 export default function Dashboard() {
   return (
-    <div
-      style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '20px 0',
-        fontFamily: "'Be Vietnam Pro', sans-serif",
-        background: '#f7f7f5',
-        boxSizing: 'border-box',
-        width: '100%',
-      }}
-    >
+    <>
+      <style>{globalStyles}</style>
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '20px 0',
+          fontFamily: "'Be Vietnam Pro', sans-serif",
+          background: '#f7f7f5',
+          boxSizing: 'border-box',
+          width: '100%',
+        }}
+      >
       {/* Page header */}
       <div
         style={{
@@ -424,6 +436,7 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

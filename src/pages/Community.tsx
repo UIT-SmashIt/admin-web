@@ -1,6 +1,15 @@
 import { useState, useMemo } from 'react';
 import { COURTS, PLAY_LEVELS, fmt } from '../pages/Lịch đặt/LichDatTypes';
 
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CommunityPost {
@@ -424,7 +433,9 @@ export default function CongDong() {
   const fullCount = posts.filter(p => p.isFull).length;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5', position: 'relative' }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', fontFamily: "'Be Vietnam Pro', sans-serif", background: '#f7f7f5', position: 'relative' }}>
       {/* Toast */}
       {toast && (
         <div style={{ position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: '#fff', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 500, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
@@ -529,5 +540,6 @@ export default function CongDong() {
         </div>
       )}
     </div>
+    </>
   );
 }

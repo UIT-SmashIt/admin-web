@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react';
 
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Status = 'pending' | 'done' | 'inprogress';
@@ -312,7 +321,9 @@ export default function BaoTri() {
   }), [tickets]);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {detailTicket && <DetailModal ticket={detailTicket} onStatusChange={handleStatusChange} onClose={() => setDetailTicket(null)} />}
 
       {/* Top bar */}
@@ -428,5 +439,6 @@ export default function BaoTri() {
         </div>
       )}
     </div>
+    </>
   );
 }

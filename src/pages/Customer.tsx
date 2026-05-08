@@ -1,5 +1,14 @@
 import { useState, useMemo } from 'react';
 
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Rank = 'Vàng' | 'Bạc' | 'Đồng' | 'Thành viên';
@@ -417,11 +426,13 @@ export default function KhachHang() {
   , [customers]);
 
   return (
-    <div style={{
-      flex: 1, overflowY: 'auto', padding: '20px 24px',
-      fontFamily: "'Be Vietnam Pro', sans-serif",
-      background: '#f7f7f5',
-    }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{
+        flex: 1, overflowY: 'auto', padding: '20px 24px',
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+        background: '#f7f7f5',
+      }}>
       {/* Modals */}
       {modal.mode && (
         <CustomerModal
@@ -688,5 +699,6 @@ export default function KhachHang() {
         </div>
       )}
     </div>
+    </>
   );
 }
