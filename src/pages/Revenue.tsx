@@ -1,4 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+
+// ─── Global Styles ────────────────────────────────────────────────────────────
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -351,11 +361,13 @@ export default function DoanhThu() {
   };
 
   return (
-    <div style={{
-      flex: 1, overflowY: 'auto', padding: '20px 24px',
-      fontFamily: "'Be Vietnam Pro', sans-serif",
-      background: '#f7f7f5',
-    }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{
+        flex: 1, overflowY: 'auto', padding: '20px 24px',
+        fontFamily: "'Be Vietnam Pro', sans-serif",
+        background: '#f7f7f5',
+      }}>
       {/* Page header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -554,5 +566,6 @@ export default function DoanhThu() {
         </div>
       </div>
     </div>
+    </>
   );
 }

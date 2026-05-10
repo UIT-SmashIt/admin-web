@@ -1,8 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import type {IProduct, IProductCategory, IProductDetail} from "../types/product.type.ts";
 import {useFetchProductCategories, useFetchProducts} from "../hooks/useProduct.ts";
 import {Spin} from "antd";
+
+// ─── Global Styles ───────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const globalStyles = `
+  html, body {
+    color-scheme: light;
+  }
+  * {
+    color-scheme: light;
+  }
+` as const;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,220 +64,89 @@ const fmtShort = (n: number) => {
   return `${n}`;
 };
 
-// ─── Cash Payment Modal ───────────────────────────────────────────────────────
+// ─── QR Code Modal ────────────────────────────────────────────────────────────
 
-function CashModal({
+function QRCodeModal({
   total,
-  onConfirm,
-  onCancel,
+  onClose,
 }: {
   total: number;
-  onConfirm: (cash: number) => void;
-  onCancel: () => void;
+  onClose: () => void;
 }) {
-  const [input, setInput] = useState('');
-  const cash = parseInt(input.replace(/\D/g, '')) || 0;
-  const change = Math.max(0, cash - total);
-  const rounded = Math.ceil(total / 500) * 500;
+  const [qrCode, setQrCode] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const addDenomination = (d: number) => {
-    setInput((prev) => {
-      const cur = parseInt(prev.replace(/\D/g, '')) || 0;
-      return fmt(cur + d);
-    });
-  };
-
-  const handleInput = (v: string) => {
-    const num = parseInt(v.replace(/\D/g, '')) || 0;
-    setInput(num ? fmt(num) : '');
-  };
+  // Simulate fetching QR code from backend
+  useEffect(() => {
+    setLoading(true);
+    // Mock API call to generate QR code
+    const timer = setTimeout(() => {
+      // Mock QR code data (in real app, would come from backend)
+      const mockQRData = `https://qr.viblo.asia/?d=SO_TIEN:${total}|THOI_GIAN:${new Date().toISOString()}|ID:${Math.random().toString(36).substr(2, 9)}`;
+      setQrCode(mockQRData);
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [total]);
 
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(0,0,0,0.45)',
+        position: 'fixed', inset: 0, zIndex: 150,
+        background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
-      onClick={onCancel}
+      onClick={onClose}
     >
       <div
         style={{
           background: '#fff',
           borderRadius: 16,
           padding: 24,
-          width: 340,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+          width: 320,
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
           fontFamily: "'Be Vietnam Pro', sans-serif",
+          textAlign: 'center',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 4 }}>
-          Nhập tiền mặt
-        </div>
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 16 }}>
-          Tổng cần thanh toán: <strong style={{ color: '#D4840A' }}>{fmt(total)}đ</strong>
+        <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 16 }}>
+          Mã QR thanh toán
         </div>
 
-        {/* Input */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <input
-            value={input}
-            onChange={(e) => handleInput(e.target.value)}
-            placeholder="Nhập số tiền"
-            style={{
-              flex: 1,
-              border: '1px solid #e0e0e0',
-              borderRadius: 8,
-              padding: '9px 12px',
-              fontSize: 15,
-              fontWeight: 600,
-              color: '#1a1a1a',
-              fontFamily: 'inherit',
-              outline: 'none',
-            }}
-          />
-          <button
-            onClick={() => onConfirm(cash)}
-            disabled={cash < total}
-            style={{
-              padding: '9px 14px',
-              borderRadius: 8,
-              border: 'none',
-              background: cash >= total ? '#22863a' : '#ccc',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: 12,
-              cursor: cash >= total ? 'pointer' : 'default',
-              fontFamily: 'inherit',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Vừa đủ
-          </button>
-        </div>
-
-        {/* Denominations grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 14 }}>
-          {DENOMINATIONS.map((d) => (
-            <button
-              key={d}
-              onClick={() => addDenomination(d)}
-              style={{
-                border: '1px solid #e8e8e8',
-                borderRadius: 7,
-                padding: '7px 4px',
-                fontSize: 11,
-                fontWeight: 500,
-                color: '#444',
-                background: '#fafafa',
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                transition: 'all 0.12s',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#FFF3E0';
-                (e.currentTarget as HTMLButtonElement).style.borderColor = '#D4840A';
-                (e.currentTarget as HTMLButtonElement).style.color = '#D4840A';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = '#fafafa';
-                (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8';
-                (e.currentTarget as HTMLButtonElement).style.color = '#444';
-              }}
-            >
-              {fmtShort(d)}
-            </button>
-          ))}
-        </div>
-
-        {/* Keypad + info */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-          {/* Numpad */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 5, flex: 1 }}>
-            {['1','2','3','4','5','6','7','8','9','000','0','⌫'].map((k) => (
-              <button
-                key={k}
-                onClick={() => {
-                  if (k === '⌫') {
-                    setInput(prev => {
-                      const s = prev.replace(/\D/g, '').slice(0, -1);
-                      return s ? fmt(parseInt(s)) : '';
-                    });
-                  } else {
-                    setInput(prev => {
-                      const s = (prev.replace(/\D/g, '') + k).replace(/^0+/, '') || '0';
-                      return fmt(parseInt(s));
-                    });
-                  }
-                }}
-                style={{
-                  border: '1px solid #ebebeb',
-                  borderRadius: 7,
-                  padding: '9px 4px',
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: k === '⌫' ? '#A32D2D' : '#333',
-                  background: '#fafafa',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {k}
-              </button>
-            ))}
-          </div>
-
-          {/* Summary */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {loading ? (
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+        ) : (
+          <>
             <div style={{
-              flex: 1, background: '#f7f7f5', borderRadius: 8, padding: '10px 12px',
-              fontSize: 12, color: '#666',
+              width: 200, height: 200, margin: '0 auto 16px',
+              background: '#f0f0f0', borderRadius: 12,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px dashed #e0e0e0',
+              fontSize: 32,
             }}>
-              <div style={{ marginBottom: 6 }}>Tiền khách đưa</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: cash >= total ? '#22863a' : '#1a1a1a' }}>
-                {cash ? fmt(cash) + 'đ' : '—'}
-              </div>
-              <div style={{ marginTop: 8, borderTop: '1px dashed #e0e0e0', paddingTop: 8 }}>
-                <div style={{ marginBottom: 3 }}>Tiền thừa</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#D4840A' }}>
-                  {cash >= total ? fmt(change) + 'đ' : '—'}
-                </div>
-              </div>
-              <div style={{ marginTop: 8, fontSize: 10.5, color: '#aaa' }}>
-                Làm tròn: {fmt(rounded)}đ
-              </div>
+              📱
             </div>
-          </div>
+            <div style={{ fontSize: 12, color: '#888', marginBottom: 12, wordBreak: 'break-all' }}>
+              {qrCode.substring(0, 50)}...
+            </div>
+          </>
+        )}
+
+        <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>
+          Cần thanh toán: <strong style={{ color: '#D4840A', fontSize: 14 }}>{fmt(total)}đ</strong>
         </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => onConfirm(cash)}
-            disabled={cash < total}
-            style={{
-              flex: 1, padding: '11px', borderRadius: 9, border: 'none',
-              background: cash >= total ? '#22863a' : '#d0d0d0',
-              color: '#fff', fontWeight: 600, fontSize: 13,
-              cursor: cash >= total ? 'pointer' : 'default',
-              fontFamily: 'inherit',
-            }}
-          >
-            ✓ OK
-          </button>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1, padding: '11px', borderRadius: 9,
-              border: '1px solid #e0e0e0',
-              background: '#fff', color: '#A32D2D', fontWeight: 600, fontSize: 13,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Hủy bỏ
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          style={{
+            width: '100%', padding: '11px', borderRadius: 9, border: 'none',
+            background: '#D4840A', color: '#fff', fontWeight: 600, fontSize: 13,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          ✓ Xác nhận
+        </button>
       </div>
     </div>
   );
@@ -292,33 +172,54 @@ function CheckoutView({
   onConfirm: (method: PaymentMethod) => void;
 }) {
   const [payMethod, setPayMethod] = useState<PaymentMethod>(null);
-  const [showCash, setShowCash] = useState(false);
+  const [cashInput, setCashInput] = useState('');
+  const [paidAmount, setPaidAmount] = useState(0);
   const [promoExpanded, setPromoExpanded] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const subtotal = cart.reduce((s, i) => s + i.variant.unitPrice * i.qty, 0);
   const discountAmt = Math.round(subtotal * discount / 100);
   const total = subtotal - discountAmt;
-  const rounded = Math.ceil(total / 500) * 500;
+  const rounded = Math.ceil(total / 1000) * 1000;
+  const cash = parseInt(cashInput.replace(/\D/g, '')) || 0;
+  const change = paidAmount > rounded ? paidAmount - rounded : 0;
+  const remaining = paidAmount < rounded ? rounded - paidAmount : 0;
 
   const fields = [
-    { label: 'Cần thu', value: fmt(total) + 'đ', bold: true, accent: true },
     { label: 'Giá gốc', value: fmt(subtotal) + 'đ' },
     { label: 'Khuyến mãi', value: discount ? `-${fmt(discountAmt)}đ` : '—', color: '#22863a' },
-    { label: 'Đã thu', value: '—' },
-    { label: 'Còn thiếu', value: total > 0 ? fmt(total) + 'đ' : '—' },
+    { label: 'Cần thu', value: fmt(total) + 'đ', bold: true },
     { label: 'Làm tròn', value: fmt(rounded) + 'đ' },
-    { label: 'Tiền thừa', value: '—' },
+    { label: 'Đã thu', value: paidAmount > 0 ? fmt(paidAmount) + 'đ' : '—' },
+    { label: 'Tiền thừa', value: change > 0 ? fmt(change) + 'đ' : '—', color: '#D4840A' },
+    { label: 'Còn thiếu', value: remaining > 0 ? fmt(remaining) + 'đ' : '—', color: '#D4840A' },
+    { label: 'Thanh toán', value: fmt(rounded) + 'đ', bold: true, accent: true},
   ];
+
+  const handleCashKeypad = (key: string) => {
+    if (key === '⌫') {
+      setCashInput(prev => {
+        const s = prev.replace(/\D/g, '').slice(0, -1);
+        return s ? fmt(parseInt(s)) : '';
+      });
+    } else {
+      setCashInput(prev => {
+        const s = (prev.replace(/\D/g, '') + key).replace(/^0+/, '') || '0';
+        return fmt(parseInt(s));
+      });
+    }
+  };
+
+  const addCashDenomination = (d: number) => {
+    setCashInput((prev) => {
+      const cur = parseInt(prev.replace(/\D/g, '')) || 0;
+      return fmt(cur + d);
+    });
+  };
 
   return (
     <>
-      {showCash && payMethod === 'cash' && (
-        <CashModal
-          total={rounded}
-          onConfirm={() => { setShowCash(false); onConfirm('cash'); }}
-          onCancel={() => setShowCash(false)}
-        />
-      )}
+      {showQR && <QRCodeModal total={total} onClose={() => setShowQR(false)} />}
       <div style={{ display: 'flex', flex: 1, gap: 0, overflow: 'hidden' }}>
         {/* Left: fields */}
         <div style={{
@@ -417,48 +318,136 @@ function CheckoutView({
 
         {/* Right: payment methods */}
         <div style={{
-          width: 220, padding: '20px 16px', background: '#f7f7f5',
+          width: 280, padding: '20px 16px', background: '#f7f7f5',
           display: 'flex', flexDirection: 'column', gap: 12,
           borderLeft: '0.5px solid rgba(0,0,0,0.08)',
+          overflow: 'auto',
         }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Phương thức
           </div>
 
-          {[
-            { method: 'cash' as PaymentMethod, label: 'Tiền mặt', emoji: '💵' },
-            { method: 'qr' as PaymentMethod, label: 'Mã QR', emoji: '📱' },
-          ].map(({ method, label, emoji }) => (
-            <button
-              key={method!}
-              onClick={() => setPayMethod(method)}
+          {/* QR Button - smaller */}
+          <button
+            onClick={() => {
+              setPayMethod('qr');
+              setShowQR(true);
+            }}
+            style={{
+              minHeight: 60,
+              borderRadius: 10, border: `2px solid ${payMethod === 'qr' ? '#D4840A' : '#e0e0e0'}`,
+              background: payMethod === 'qr' ? '#FFF9F0' : '#fff',
+              cursor: 'pointer', fontFamily: 'inherit',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 4,
+              transition: 'all 0.15s',
+            }}
+            title={`Mã QR cho ${fmt(total)}đ`}
+          >
+            <span style={{ fontSize: 20 }}>📱</span>
+            <span style={{
+              fontSize: 12, fontWeight: 600,
+              color: payMethod === 'qr' ? '#D4840A' : '#555',
+            }}>
+              Mã QR
+            </span>
+          </button>
+
+          {/* Cash Input Section */}
+          <div style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #e0e0e0' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#888', marginBottom: 8 }}>💵 Tiền mặt</div>
+
+            {/* Cash input display */}
+            <input
+              value={cashInput}
+              onChange={(e) => {
+                const num = parseInt(e.target.value.replace(/\D/g, '')) || 0;
+                setCashInput(num ? fmt(num) : '');
+              }}
+              placeholder="Nhập số tiền"
               style={{
-                flex: 1, minHeight: 80,
-                borderRadius: 12, border: `2px solid ${payMethod === method ? '#D4840A' : '#e0e0e0'}`,
-                background: payMethod === method ? '#FFF9F0' : '#fff',
-                cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 6,
-                transition: 'all 0.15s',
+                width: '100%', boxSizing: 'border-box',
+                border: '1px solid #e0e0e0', borderRadius: 8,
+                padding: '9px 10px', fontSize: 13, fontWeight: 600,
+                fontFamily: 'inherit', outline: 'none', color: '#1a1a1a',
+                marginBottom: 8,
+              }}
+            />
+
+            {/* Denominations */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 8 }}>
+              {DENOMINATIONS.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => addCashDenomination(d)}
+                  style={{
+                    border: '1px solid #e8e8e8', borderRadius: 6,
+                    padding: '5px 3px', fontSize: 10,
+                    fontWeight: 500, color: '#444',
+                    background: '#fafafa', cursor: 'pointer',
+                    fontFamily: 'inherit', transition: 'all 0.12s',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = '#FFF3E0';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#D4840A';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#D4840A';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLButtonElement).style.background = '#fafafa';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = '#e8e8e8';
+                    (e.currentTarget as HTMLButtonElement).style.color = '#444';
+                  }}
+                >
+                  {fmtShort(d)}
+                </button>
+              ))}
+            </div>
+
+            {/* Numpad */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 8 }}>
+              {['1','2','3','4','5','6','7','8','9','000','0','⌫'].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleCashKeypad(k)}
+                  style={{
+                    border: '1px solid #ebebeb', borderRadius: 6,
+                    padding: '7px 3px', fontSize: 11, fontWeight: 500,
+                    color: k === '⌫' ? '#A32D2D' : '#333',
+                    background: '#fafafa', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
+            {/* Confirm button */}
+            <button
+              onClick={() => {
+                if (cash > 0) {
+                  setPaidAmount(cash);
+                  setPayMethod('cash');
+                  setCashInput('');
+                }
+              }}
+              disabled={cash === 0}
+              style={{
+                width: '100%', padding: '8px', borderRadius: 8, border: 'none',
+                background: cash > 0 ? '#22863a' : '#ccc',
+                color: '#fff', fontWeight: 600, fontSize: 12,
+                cursor: cash > 0 ? 'pointer' : 'default', fontFamily: 'inherit',
               }}
             >
-              <span style={{ fontSize: 24 }}>{emoji}</span>
-              <span style={{
-                fontSize: 13, fontWeight: 600,
-                color: payMethod === method ? '#D4840A' : '#555',
-              }}>
-                {label}
-              </span>
+              ✓ Xác nhận tiền
             </button>
-          ))}
+          </div>
 
           <div style={{ flex: 1 }} />
 
           <button
             onClick={() => {
               if (!payMethod) return;
-              if (payMethod === 'cash') setShowCash(true);
-              else onConfirm(payMethod);
+              onConfirm(payMethod);
             }}
             disabled={!payMethod}
             style={{
@@ -512,12 +501,32 @@ function POSView({
   const [category, setCategory] = useState(categories[0].productCategoryId || null);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedCartItem, setSelectedCartItem] = useState<{ itemId: number; variantId: number } | null>(null);
+  const [numpadInput, setNumpadInput] = useState('');
 
   const filtered = products.filter(p => p.categoryId === category);
   const total = cart.reduce((s, i) => s + i.variant.unitPrice * i.qty, 0);
   const selectedItem = selectedCartItem !== null
     ? cart.find(i => i.item.productId === selectedCartItem.itemId && i.variant.productDetailId === selectedCartItem.variantId)
     : null;
+
+  const handleNumpadKey = (key: string) => {
+    if (key === '⌫') {
+      setNumpadInput(prev => prev.slice(0, -1));
+    } else {
+      setNumpadInput(prev => (prev + key).replace(/^0+/, '') || '0');
+    }
+  };
+
+  const confirmNumpadQty = () => {
+    const qty = parseInt(numpadInput) || 0;
+    if (selectedItem && qty > 0) {
+      onQtyChange(selectedItem.item.id, selectedItem.variant.id, qty);
+      setNumpadInput('');
+    }
+  };
+
+
+
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -761,8 +770,9 @@ function POSView({
       {/* ── Right: selected item & actions ── */}
       <div style={{
         flex: '0 0 180px', display: 'flex', flexDirection: 'column',
-        padding: '14px 14px', gap: 10, background: '#fafafa',
+        padding: '14px 12px', gap: 8, background: '#fafafa',
         borderLeft: '0.5px solid rgba(0,0,0,0.08)',
+        overflow: 'hidden',
       }}>
         <div style={{ fontSize: 11.5, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Sản phẩm chọn
@@ -791,51 +801,80 @@ function POSView({
         </div>
 
         <div style={{ fontSize: 11.5, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Đơn giá
+          Thành tiền
         </div>
         <div style={{
           background: '#fff', borderRadius: 10, border: '1px solid #ebebeb',
           padding: '10px', fontSize: 14, fontWeight: 700,
           color: selectedItem ? '#D4840A' : '#ddd', textAlign: 'center',
         }}>
-          {selectedItem ? fmt(selectedItem.variant.unitPrice) + 'đ' : '—'}
-        </div>
-
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button
-            onClick={onClear}
-            style={{
-              flex: 1, padding: '8px 6px', borderRadius: 8,
-              border: '1px solid #e0e0e0', background: '#fff',
-              fontSize: 11, color: '#888', cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Xóa
-          </button>
-          <button
-            onClick={() => {}}
-            style={{
-              flex: 1, padding: '8px 6px', borderRadius: 8,
-              border: '1px solid #e0e0e0', background: '#fff',
-              fontSize: 11, color: '#888', cursor: 'pointer', fontFamily: 'inherit',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-            }}
-          >
-            <span>Bàn phím</span>
-            <span style={{ fontSize: 9 }}>số</span>
-          </button>
+          {selectedItem ? fmt(selectedItem.variant.unitPrice * selectedItem.qty) + 'đ' : '—'}
         </div>
 
         <button
-          onClick={() => {}}
+          onClick={onClear}
           style={{
-            padding: '9px', borderRadius: 8, border: '1px solid #e0e0e0',
-            background: '#fff', fontSize: 12, color: '#555',
-            cursor: 'pointer', fontFamily: 'inherit',
+            width: '100%', padding: '9px 6px', borderRadius: 8,
+            border: '1px solid #e0e0e0', background: '#fff',
+            fontSize: 11, color: '#888', cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          Nhập số lượng
+          Xóa giỏ hàng
         </button>
+
+        {/* Qty Input Section */}
+        {selectedItem && (
+          <div style={{ padding: '12px', background: '#fff', borderRadius: 10, border: '1px solid #e0e0e0' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#888', marginBottom: 8 }}> Số lượng</div>
+
+            {/* Qty input display */}
+            <input
+              value={numpadInput}
+              onChange={(e) => setNumpadInput(e.target.value.replace(/\D/g, ''))}
+              placeholder="Nhập số lượng"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                border: '1px solid #e0e0e0', borderRadius: 8,
+                padding: '9px 10px', fontSize: 13, fontWeight: 600,
+                fontFamily: 'inherit', outline: 'none', color: '#1a1a1a',
+                marginBottom: 8,
+              }}
+            />
+
+            {/* Numpad */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 8 }}>
+              {['1','2','3','4','5','6','7','8','9','000','0','⌫'].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => handleNumpadKey(k)}
+                  style={{
+                    border: '1px solid #ebebeb', borderRadius: 6,
+                    padding: '7px 3px', fontSize: 11, fontWeight: 500,
+                    color: k === '⌫' ? '#A32D2D' : '#333',
+                    background: '#fafafa', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
+            {/* Confirm button */}
+            <button
+              onClick={confirmNumpadQty}
+              disabled={!numpadInput}
+              style={{
+                width: '100%', padding: '8px', borderRadius: 8, border: 'none',
+                background: numpadInput ? '#22863a' : '#ccc',
+                color: '#fff', fontWeight: 600, fontSize: 12,
+                cursor: numpadInput ? 'pointer' : 'default', fontFamily: 'inherit',
+                marginBottom: 8,
+              }}
+            >
+              ✓ OK
+            </button>
+          </div>
+        )}
 
         <div style={{ flex: 1 }} />
 
@@ -911,11 +950,13 @@ export default function BanHang() {
   if (categoriesLoading || productsLoading) { return <Spin fullscreen /> }
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
-      position: 'relative',
-    }}>
+    <>
+      <style>{globalStyles}</style>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        background: '#f7f7f5', fontFamily: "'Be Vietnam Pro', sans-serif",
+        position: 'relative',
+      }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -981,5 +1022,6 @@ export default function BanHang() {
         )}
       </div>
     </div>
+    </>
   );
 }
