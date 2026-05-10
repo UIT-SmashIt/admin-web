@@ -1,12 +1,14 @@
 import { useState } from 'react';
 
-import { type StockItem, type StockVariant } from './Inventory';
+import type {IProduct, IProductCategory, IProductDetail} from "../types/product.type.ts";
+import {useFetchProductCategories, useFetchProducts} from "../hooks/useProduct.ts";
+import {Spin} from "antd";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CartItem {
-  item: StockItem;
-  variant: StockVariant;
+  item: IProduct;
+  variant: IProductDetail;
   qty: number;
 }
 
@@ -21,23 +23,6 @@ type PaymentMethod = 'cash' | 'qr' | null;
 type View = 'pos' | 'checkout';
 
 // ─── Mock const ────────────────────────────────────────────────────────────────
-
-const CATEGORIES = ['Nước', 'Snack', 'Vợt', 'Cầu', 'Phụ kiện'];
-
-const PRODUCTS: StockItem[] = [
-  { id: 1, name: 'Nước lọc Aqua', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 11, unit: 'Chai', price: 8000, saleType: 'Lẻ', qty: 20 }] },
-  { id: 2, name: 'Pocari Sweat', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 21, unit: 'Chai', price: 15000, saleType: 'Lẻ', qty: 15 }] },
-  { id: 3, name: 'Red Bull', category: 'Nước', capacity: '250ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 31, unit: 'Lon', price: 12000, saleType: 'Lẻ', qty: 25 }] },
-  { id: 4, name: 'Trà xanh 0°', category: 'Nước', capacity: '500ml', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 41, unit: 'Chai', price: 10000, saleType: 'Lẻ', qty: 30 }] },
-  { id: 5, name: 'Snack Oishi', category: 'Snack', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 51, unit: 'Gói', price: 5000, saleType: 'Lẻ', qty: 50 }] },
-  { id: 6, name: 'Bánh mì que', category: 'Snack', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 61, unit: 'Cái', price: 8000, saleType: 'Lẻ', qty: 40 }] },
-  { id: 7, name: 'Vợt Victor JS-12', category: 'Vợt', capacity: '', createdAt: '02/04/2026', updatedAt: '09/04/2026', variants: [{ id: 71, unit: 'Cái', price: 350000, saleType: 'Lẻ', qty: 8 }] },
-  { id: 8, name: 'Vợt Yonex Astrox', category: 'Vợt', capacity: '', createdAt: '02/04/2026', updatedAt: '09/04/2026', variants: [{ id: 81, unit: 'Cái', price: 1200000, saleType: 'Lẻ', qty: 3 }] },
-  { id: 9, name: 'Cầu Yonex AS-05', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 91, unit: 'Hộp', price: 220000, saleType: 'Sỉ', qty: 50 }] },
-  { id: 10, name: 'Cầu nhựa RSL', category: 'Cầu', capacity: '', createdAt: '01/04/2026', updatedAt: '09/04/2026', variants: [{ id: 101, unit: 'Hộp', price: 85000, saleType: 'Sỉ', qty: 40 }] },
-  { id: 11, name: 'Quấn cán Li-Ning', category: 'Phụ kiện', capacity: '', createdAt: '03/04/2026', updatedAt: '09/04/2026', variants: [{ id: 111, unit: 'Cuộn', price: 35000, saleType: 'Lẻ', qty: 30 }] },
-  { id: 12, name: 'Băng cổ tay Yonex', category: 'Phụ kiện', capacity: '', createdAt: '03/04/2026', updatedAt: '09/04/2026', variants: [{ id: 121, unit: 'Đôi', price: 45000, saleType: 'Lẻ', qty: 25 }] },
-];
 
 const HISTORY: OrderHistory[] = [
   {
@@ -310,7 +295,7 @@ function CheckoutView({
   const [showCash, setShowCash] = useState(false);
   const [promoExpanded, setPromoExpanded] = useState(false);
 
-  const subtotal = cart.reduce((s, i) => s + i.variant.price * i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.variant.unitPrice * i.qty, 0);
   const discountAmt = Math.round(subtotal * discount / 100);
   const total = subtotal - discountAmt;
   const rounded = Math.ceil(total / 500) * 500;
@@ -506,6 +491,8 @@ function CheckoutView({
 // ─── POS View ─────────────────────────────────────────────────────────────────
 
 function POSView({
+  products,
+  categories,
   cart,
   onAddToCart,
   onQtyChange,
@@ -513,21 +500,23 @@ function POSView({
   onCheckout,
   onClear,
 }: {
+  products: IProduct[];
+  categories: IProductCategory[];
   cart: CartItem[];
-  onAddToCart: (item: StockItem, variant: StockVariant) => void;
+  onAddToCart: (item: IProduct, variant: IProductDetail) => void;
   onQtyChange: (itemId: number, variantId: number, qty: number) => void;
   onRemove: (itemId: number, variantId: number) => void;
   onCheckout: () => void;
   onClear: () => void;
 }) {
-  const [category, setCategory] = useState('Nước');
+  const [category, setCategory] = useState(categories[0].productCategoryId || null);
   const [showHistory, setShowHistory] = useState(false);
   const [selectedCartItem, setSelectedCartItem] = useState<{ itemId: number; variantId: number } | null>(null);
 
-  const filtered = PRODUCTS.filter(p => p.category === category);
-  const total = cart.reduce((s, i) => s + i.variant.price * i.qty, 0);
+  const filtered = products.filter(p => p.categoryId === category);
+  const total = cart.reduce((s, i) => s + i.variant.unitPrice * i.qty, 0);
   const selectedItem = selectedCartItem !== null
-    ? cart.find(i => i.item.id === selectedCartItem.itemId && i.variant.id === selectedCartItem.variantId)
+    ? cart.find(i => i.item.productId === selectedCartItem.itemId && i.variant.productDetailId === selectedCartItem.variantId)
     : null;
 
   return (
@@ -546,22 +535,22 @@ function POSView({
           overflowX: 'auto',
           gap: 6,
         }}>
-          {CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button
-              key={cat}
-              onClick={() => setCategory(cat)}
+              key={cat.productCategoryId}
+              onClick={() => setCategory(cat.productCategoryId)}
               style={{
                 padding: '6px 14px', borderRadius: 20, border: 'none',
-                background: category === cat ? '#D4840A' : '#f0f0ee',
-                color: category === cat ? '#fff' : '#555',
-                fontWeight: category === cat ? 600 : 400,
+                background: category === cat.productCategoryId ? '#D4840A' : '#f0f0ee',
+                color: category === cat.productCategoryId ? '#fff' : '#555',
+                fontWeight: category === cat.productCategoryId ? 600 : 400,
                 fontSize: 13, cursor: 'pointer',
                 fontFamily: "'Be Vietnam Pro', sans-serif",
                 whiteSpace: 'nowrap', flexShrink: 0,
                 transition: 'all 0.15s',
               }}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -574,8 +563,8 @@ function POSView({
         }}>
           {filtered.map(item => (
             <button
-              key={item.id}
-              onClick={() => onAddToCart(item, item.variants[0])}
+              key={item.productId}
+              onClick={() => onAddToCart(item, item.details[0])}
               style={{
                 border: '1px solid #ebebeb', borderRadius: 10,
                 padding: '10px 8px', background: '#fafafa',
@@ -600,13 +589,13 @@ function POSView({
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 20,
               }}>
-                {category === 'Nước' ? '🥤' : category === 'Snack' ? '🍪' : category === 'Vợt' ? '🏸' : category === 'Cầu' ? '⚪' : '🎽'}
+                {/*{category === 'Nước' ? '🥤' : category === 'Snack' ? '🍪' : category === 'Vợt' ? '🏸' : category === 'Cầu' ? '⚪' : '🎽'}*/}
               </div>
               <div style={{ fontSize: 11, color: '#1a1a1a', textAlign: 'center', lineHeight: 1.3, fontWeight: 500 }}>
-                {item.name}
+                {item.productName}
               </div>
               <div style={{ fontSize: 11.5, color: '#D4840A', fontWeight: 600 }}>
-                {fmtShort(item.variants[0].price)}đ
+                {fmtShort(item.details[0].unitPrice)}đ
               </div>
             </button>
           ))}
@@ -701,46 +690,46 @@ function POSView({
                 <tbody>
                   {cart.map((item, i) => (
                     <tr
-                      key={`${item.item.id}-${item.variant.id}`}
-                      onClick={() => setSelectedCartItem(selectedCartItem?.itemId === item.item.id && selectedCartItem?.variantId === item.variant.id ? null : { itemId: item.item.id, variantId: item.variant.id })}
+                      key={`${item.item.productId}-${item.variant.productDetailId}`}
+                      onClick={() => setSelectedCartItem(selectedCartItem?.itemId === item.item.productId && selectedCartItem?.variantId === item.variant.productDetailId ? null : { itemId: item.item.productId, variantId: item.variant.productDetailId })}
                       style={{
                         borderBottom: '0.5px solid #f5f5f5',
-                        background: selectedCartItem?.itemId === item.item.id && selectedCartItem?.variantId === item.variant.id ? '#FFF9F0' : '',
+                        background: selectedCartItem?.itemId === item.item.productId && selectedCartItem?.variantId === item.variant.productDetailId ? '#FFF9F0' : '',
                         cursor: 'pointer', transition: 'background 0.1s',
                       }}
                       onMouseEnter={e => {
-                        if (selectedCartItem?.itemId !== item.item.id || selectedCartItem?.variantId !== item.variant.id)
+                        if (selectedCartItem?.itemId !== item.item.productId || selectedCartItem?.variantId !== item.variant.productDetailId)
                           (e.currentTarget as HTMLTableRowElement).style.background = '#fafafa';
                       }}
                       onMouseLeave={e => {
-                        if (selectedCartItem?.itemId !== item.item.id || selectedCartItem?.variantId !== item.variant.id)
+                        if (selectedCartItem?.itemId !== item.item.productId || selectedCartItem?.variantId !== item.variant.productDetailId)
                           (e.currentTarget as HTMLTableRowElement).style.background = '';
                       }}
                     >
                       <td style={{ padding: '9px 10px', color: '#bbb' }}>{i + 1}</td>
-                      <td style={{ padding: '9px 10px', color: '#888', fontSize: 11 }}>{item.item.id}</td>
-                      <td style={{ padding: '9px 10px', color: '#1a1a1a', fontWeight: 500 }}>{item.item.name}</td>
+                      <td style={{ padding: '9px 10px', color: '#888', fontSize: 11 }}>{item.item.productId}</td>
+                      <td style={{ padding: '9px 10px', color: '#1a1a1a', fontWeight: 500 }}>{item.item.productId}</td>
                       <td style={{ padding: '9px 10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
-                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.id, item.variant.id, item.qty - 1); }}
+                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.productId, item.variant.productDetailId, item.qty - 1); }}
                             style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, color: '#555' }}
                           >−</button>
                           <span style={{ minWidth: 20, textAlign: 'center', fontWeight: 600 }}>{item.qty}</span>
                           <button
-                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.id, item.variant.id, item.qty + 1); }}
+                            onClick={e => { e.stopPropagation(); onQtyChange(item.item.productId, item.variant.productDetailId, item.qty + 1); }}
                             style={{ width: 20, height: 20, borderRadius: 4, border: '1px solid #e0e0e0', background: '#fff', cursor: 'pointer', fontSize: 12, lineHeight: 1, color: '#555' }}
                           >+</button>
                         </div>
                       </td>
                       <td style={{ padding: '9px 10px', color: '#888' }}>{item.variant.unit}</td>
-                      <td style={{ padding: '9px 10px', color: '#555' }}>{fmt(item.variant.price)}</td>
+                      <td style={{ padding: '9px 10px', color: '#555' }}>{fmt(item.variant.unitPrice)}</td>
                       <td style={{ padding: '9px 10px', textAlign: 'right', fontWeight: 600, color: '#1a1a1a' }}>
-                        {fmt(item.variant.price * item.qty)}
+                        {fmt(item.variant.unitPrice * item.qty)}
                       </td>
                       <td style={{ padding: '9px 6px' }}>
                         <button
-                          onClick={e => { e.stopPropagation(); onRemove(item.item.id, item.variant.id); }}
+                          onClick={e => { e.stopPropagation(); onRemove(item.item.productId, item.variant.productDetailId); }}
                           style={{
                             width: 20, height: 20, borderRadius: 4, border: 'none',
                             background: '#FEE8E8', color: '#A32D2D', cursor: 'pointer',
@@ -786,14 +775,14 @@ function POSView({
         }}>
           {selectedItem ? (
             <>
-              <div style={{ fontWeight: 600, fontSize: 12.5 }}>{selectedItem.item.name}</div>
-              <div style={{ color: '#888' }}>ID: {selectedItem.item.id}</div>
+              <div style={{ fontWeight: 600, fontSize: 12.5 }}>{selectedItem.item.productName}</div>
+              <div style={{ color: '#888' }}>ID: {selectedItem.item.productId}</div>
               <div style={{ color: '#888' }}>ĐV: {selectedItem.variant.unit}</div>
               <div style={{ color: '#D4840A', fontWeight: 600, marginTop: 4 }}>
-                {fmt(selectedItem.variant.price)}đ × {selectedItem.qty}
+                {fmt(selectedItem.variant.unitPrice)}đ × {selectedItem.qty}
               </div>
               <div style={{ borderTop: '1px dashed #e8e8e8', marginTop: 4, paddingTop: 4, fontWeight: 700, color: '#1a1a1a' }}>
-                = {fmt(selectedItem.variant.price * selectedItem.qty)}đ
+                = {fmt(selectedItem.variant.unitPrice * selectedItem.qty)}đ
               </div>
             </>
           ) : (
@@ -809,7 +798,7 @@ function POSView({
           padding: '10px', fontSize: 14, fontWeight: 700,
           color: selectedItem ? '#D4840A' : '#ddd', textAlign: 'center',
         }}>
-          {selectedItem ? fmt(selectedItem.variant.price) + 'đ' : '—'}
+          {selectedItem ? fmt(selectedItem.variant.unitPrice) + 'đ' : '—'}
         </div>
 
         <div style={{ display: 'flex', gap: 6 }}>
@@ -883,6 +872,8 @@ function POSView({
 // ─── Main BanHang Page ────────────────────────────────────────────────────────
 
 export default function BanHang() {
+  const { data: products, isLoading: productsLoading } = useFetchProducts();
+  const { data: categories, isLoading: categoriesLoading} = useFetchProductCategories();
   const [view, setView] = useState<View>('pos');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -894,20 +885,20 @@ export default function BanHang() {
     setTimeout(() => setToast(null), 2200);
   };
 
-  const addToCart = (item: StockItem, variant: StockVariant) => {
+  const addToCart = (item: IProduct, variant: IProductDetail) => {
     setCart(prev => {
-      const existing = prev.find(i => i.item.id === item.id && i.variant.id === variant.id);
-      if (existing) return prev.map(i => i.item.id === item.id && i.variant.id === variant.id ? { ...i, qty: i.qty + 1 } : i);
+      const existing = prev.find(i => i.item.productId === item.productId && i.variant.productDetailId === variant.productDetailId);
+      if (existing) return prev.map(i => i.item.productId === item.productId && i.variant.productDetailId === variant.productDetailId ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { item, variant, qty: 1 }];
     });
   };
 
   const changeQty = (itemId: number, variantId: number, qty: number) => {
-    if (qty <= 0) setCart(prev => prev.filter(i => !(i.item.id === itemId && i.variant.id === variantId)));
-    else setCart(prev => prev.map(i => i.item.id === itemId && i.variant.id === variantId ? { ...i, qty } : i));
+    if (qty <= 0) setCart(prev => prev.filter(i => !(i.item.productId === itemId && i.variant.productDetailId === variantId)));
+    else setCart(prev => prev.map(i => i.item.productId === itemId && i.variant.productDetailId === variantId ? { ...i, qty } : i));
   };
 
-  const removeItem = (itemId: number, variantId: number) => setCart(prev => prev.filter(i => !(i.item.id === itemId && i.variant.id === variantId)));
+  const removeItem = (itemId: number, variantId: number) => setCart(prev => prev.filter(i => !(i.item.productId === itemId && i.variant.productDetailId === variantId)));
 
   const clearCart = () => { setCart([]); setDiscount(0); setBuyerCode(''); };
 
@@ -916,6 +907,8 @@ export default function BanHang() {
     clearCart();
     setView('pos');
   };
+
+  if (categoriesLoading || productsLoading) { return <Spin fullscreen /> }
 
   return (
     <div style={{
@@ -966,6 +959,8 @@ export default function BanHang() {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {view === 'pos' ? (
           <POSView
+            products={products || []}
+            categories={categories || []}
             cart={cart}
             onAddToCart={addToCart}
             onQtyChange={changeQty}

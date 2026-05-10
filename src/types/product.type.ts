@@ -58,6 +58,21 @@ export interface ProductImportAddPayload {
   productDetailId: number;
 }
 
+export interface IProductCategory {
+  productCategoryId: number;
+  name: string;
+  description: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
+export interface ProductCategoryPayload {
+  name: string;
+  description?: string;
+  backgroundColor: string;
+  textColor: string;
+}
+
 /*
 export interface ProductReq {
   productName: string;

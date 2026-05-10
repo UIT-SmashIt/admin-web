@@ -1,8 +1,8 @@
 import {api} from "./apiClient.ts";
 import type {
-  IProduct,
+  IProduct, IProductCategory,
   IProductImport,
-  ProductAddPayload,
+  ProductAddPayload, ProductCategoryPayload,
   ProductEditPayload, ProductEditQuantityPayload,
   ProductImportAddPayload
 } from "../types/product.type.ts";
@@ -29,4 +29,16 @@ export const fetchProductImports = async (): Promise<IProductImport[]> => {
 
 export const addProductImport = async (newImport: ProductImportAddPayload): Promise<void> => {
   return api.post('/api/product-import', newImport);
+}
+
+export const fetchProductCategories = async (): Promise<IProductCategory[]> => {
+  return api.get<IProductCategory[]>('api/product-category');
+}
+
+export const addProductCategory = async (newCategory: ProductCategoryPayload): Promise<void> => {
+  return api.post('/api/product-category', newCategory);
+}
+
+export const editProductCategory = async ({id, data}: {id: number, data: ProductCategoryPayload}): Promise<void> => {
+  return api.put(`/api/product-category/${id}`, data);
 }

@@ -1,14 +1,14 @@
 import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
 import {
-  addProduct,
+  addProduct, addProductCategory,
   addProductImport,
-  editProduct,
-  editProductQuantity,
+  editProduct, editProductCategory,
+  editProductQuantity, fetchProductCategories,
   fetchProductImports,
   fetchProducts
 } from "../api/productApi.ts";
 import type {
-  ProductAddPayload,
+  ProductAddPayload, ProductCategoryPayload,
   ProductEditPayload, ProductEditQuantityPayload, ProductImportAddPayload,
 } from "../types/product.type.ts";
 
@@ -66,6 +66,35 @@ export const useAddProductImport = () => {
     mutationFn: addProductImport,
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['productImports']});
+    },
+  });
+}
+
+export const useFetchProductCategories = () => {
+  return useQuery({
+    queryKey: ['productCategories'],
+    queryFn: fetchProductCategories
+  });
+}
+
+export const useAddProductCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, ProductCategoryPayload>({
+    mutationFn: addProductCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['productCategories']});
+    },
+  });
+}
+
+export const useEditProductCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, {id: number, data: ProductCategoryPayload}>({
+    mutationFn: editProductCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['productCategories']});
     },
   });
 }

@@ -1,7 +1,7 @@
-import type {IProductCategory, ProductCategoryReq} from "../../../../types/productCategory.type.ts";
 import {useState} from "react";
 import {getInpStyle} from "../../../../utils/get-input-style.ts";
 import {blurGray, focusOrange} from "../../../../utils/custom-color.ts";
+import type {IProductCategory, ProductCategoryPayload} from "../../../../types/product.type.ts";
 
 const PALETTE: { color: string; text: string }[] = [
   { color: '#E6F1FB', text: '#1565C0' },
@@ -19,9 +19,9 @@ const PALETTE: { color: string; text: string }[] = [
 ];
 
 function CategoryEditModal({ cat, existingNames, onSave, onClose }: {
-  cat: ProductCategoryReq | null; // null = thêm mới
+  cat: ProductCategoryPayload | null; // null = thêm mới
   existingNames: string[];
-  onSave: (c: ProductCategoryReq) => void;
+  onSave: (c: ProductCategoryPayload) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState(cat?.name ?? '');
@@ -92,15 +92,15 @@ function CategoryEditModal({ cat, existingNames, onSave, onClose }: {
 export function CategoryManagerModal({ categories, itemCountByCategory, onAdd, onEdit, onDelete, onClose }: {
   categories: IProductCategory[];
   itemCountByCategory: Record<string, number>;
-  onAdd: (c: ProductCategoryReq) => void;
-  onEdit: (id: number, c: ProductCategoryReq) => void;
+  onAdd: (c: ProductCategoryPayload) => void;
+  onEdit: (id: number, c: ProductCategoryPayload) => void;
   onDelete: (name: string) => void;
   onClose: () => void;
 }) {
   const [editModal, setEditModal] = useState<{ open: boolean; cat: IProductCategory | null }>({ open: false, cat: null });
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const handleSave = (c: ProductCategoryReq) => {
+  const handleSave = (c: ProductCategoryPayload) => {
     if (editModal.cat) {
       onEdit(editModal.cat.productCategoryId, c);
     } else {

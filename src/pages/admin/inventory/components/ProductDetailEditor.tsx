@@ -1,9 +1,14 @@
-import type {IProduct, IProductDetail, ProductAddPayload, ProductEditPayload} from "../../../../types/product.type";
+import type {
+  IProduct,
+  IProductCategory,
+  IProductDetail,
+  ProductAddPayload,
+  ProductEditPayload
+} from "../../../../types/product.type";
 import {genId} from "../../../../utils/gen-id.ts";
 import {getInpStyle} from "../../../../utils/get-input-style.ts";
 import {SaleType} from "../../../../const/saleType.const.ts";
 import {blurGray, focusOrange} from "../../../../utils/custom-color.ts";
-import type {IProductCategory} from "../../../../types/productCategory.type.ts";
 import {useState} from "react";
 import {fmt} from "../../../../utils/fmt.ts";
 

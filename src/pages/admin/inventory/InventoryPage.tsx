@@ -1,21 +1,17 @@
 import { useState, useMemo } from 'react';
-import {
-  useFetchProductCategories,
-  useAddProductCategory,
-  useEditProductCategory
-} from "../../../hooks/useProductCategory.ts";
-import type {ProductCategoryReq} from "../../../types/productCategory.type.ts";
+
+
 import { Spin } from 'antd';
 import {
-  useAddProduct,
+  useAddProduct, useAddProductCategory,
   useAddProductImport,
-  useEditProduct,
-  useEditProductQuantity, useFetchProductImports,
+  useEditProduct, useEditProductCategory,
+  useEditProductQuantity, useFetchProductCategories, useFetchProductImports,
   useFetchProducts
 } from "../../../hooks/useProduct.ts";
 import type {
   IProduct,
-  ProductAddPayload,
+  ProductAddPayload, ProductCategoryPayload,
   ProductEditPayload, ProductEditQuantityPayload, ProductImportAddPayload,
 } from "../../../types/product.type.ts";
 import {StockListView} from "./components/StockListView.tsx";
@@ -48,12 +44,12 @@ export default function KhoDichVu() {
 
   // ── CATEGORY CRUD ──────────────────────────────────────────────
 
-  const handleAddCategory = (cat: ProductCategoryReq) => {
+  const handleAddCategory = (cat: ProductCategoryPayload) => {
     addCategory(cat);
     showToast('✓ Đã thêm danh mục: ' + cat.name);
   };
 
-  const handleEditCategory = (id: number, cat: ProductCategoryReq) => {
+  const handleEditCategory = (id: number, cat: ProductCategoryPayload) => {
     editCategory({id: id, data: cat});
     showToast('✓ Đã cập nhật danh mục: ' + cat.name);
   };

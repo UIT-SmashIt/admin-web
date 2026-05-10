@@ -1,5 +1,4 @@
-import type {IProduct} from "../../../../types/product.type.ts";
-import type {IProductCategory} from "../../../../types/productCategory.type.ts";
+import type {IProduct, IProductCategory} from "../../../../types/product.type.ts";
 import {useMemo, useState} from "react";
 import {fmt} from "../../../../utils/fmt.ts";
 
