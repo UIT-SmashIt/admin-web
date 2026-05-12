@@ -24,11 +24,33 @@ export default function POSView({
   onClear,
 }: POSViewProps) {
   const [category, setCategory] = useState(categories[0]?.productCategoryId || null);
-  const [showHistory, setShowHistory] = useState(false);
+  const [barcode, setBarcode] = useState('');
+  const [bookingCode, setBookingCode] = useState('');
+  const [showOnlineOrders, setShowOnlineOrders] = useState(false);
+  const [searchOnlineOrders, setSearchOnlineOrders] = useState('');
   const [selectedCartItem, setSelectedCartItem] = useState<{ itemId: number; variantId: number } | null>(null);
   const [numpadInput, setNumpadInput] = useState('');
 
-  const filtered = products.filter((p) => p.categoryId === category);
+  // Mock online orders data
+  const onlineOrders = [
+    { id: 'DH001', time: '08:32', customerName: 'Nguyễn Văn A', status: 'Đang xử lý', total: 250000 },
+    { id: 'DH002', time: '09:14', customerName: 'Trần Thị B', status: 'Hoàn thành', total: 450000 },
+    { id: 'DH003', time: '10:22', customerName: 'Lê Minh C', status: 'Đang xử lý', total: 180000 },
+  ];
+
+  const filteredOnlineOrders = onlineOrders.filter(
+    (order) =>
+      order.id.toLowerCase().includes(searchOnlineOrders.toLowerCase()) ||
+      order.customerName.toLowerCase().includes(searchOnlineOrders.toLowerCase())
+  );
+
+  const filtered = products.filter((p) => {
+    const matchesCategory = p.categoryId === category;
+    const matchesBarcode = !barcode || 
+      p.productName.toLowerCase().includes(barcode.toLowerCase()) || 
+      p.productId.toString().includes(barcode);
+    return matchesCategory && matchesBarcode;
+  });
   const total = cart.reduce((s, i) => s + i.variant.unitPrice * i.qty, 0);
   const selectedItem =
     selectedCartItem !== null
@@ -98,6 +120,27 @@ export default function POSView({
               {cat.name}
             </button>
           ))}
+        </div>
+
+        {/* Barcode input */}
+        <div style={{ padding: '10px 12px', borderBottom: '0.5px solid rgba(0,0,0,0.08)' }}>
+          <input
+            type="text"
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="Nhập mã vạch sản phẩm..."
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              border: '1px solid #e0e0e0',
+              borderRadius: 6,
+              padding: '8px 10px',
+              fontSize: 12,
+              fontFamily: 'inherit',
+              outline: 'none',
+              color: '#1a1a1a',
+            }}
+          />
         </div>
 
         {/* Products grid */}
@@ -189,72 +232,101 @@ export default function POSView({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 8,
             padding: '12px 16px',
             borderBottom: '0.5px solid rgba(0,0,0,0.08)',
           }}
         >
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a' }}>Thời gian</div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#888', textTransform: 'uppercase' }}>
+              Mã đơn đặt sân
+            </label>
+            <input
+              type="text"
+              value={bookingCode}
+              onChange={(e) => setBookingCode(e.target.value)}
+              placeholder="Nhập mã đơn (bắt buộc)"
+              style={{
+                border: bookingCode ? '1px solid #D4840A' : '1px solid #e0e0e0',
+                borderRadius: 6,
+                padding: '7px 10px',
+                fontSize: 12,
+                fontFamily: 'inherit',
+                outline: 'none',
+                color: '#1a1a1a',
+                background: bookingCode ? '#FFF9F0' : '#fff',
+              }}
+            />
+          </div>
           <button
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={() => setShowOnlineOrders(!showOnlineOrders)}
             style={{
               padding: '6px 14px',
               borderRadius: 7,
               border: '1px solid #e0e0e0',
-              background: showHistory ? '#f0f0ee' : '#fff',
+              background: showOnlineOrders ? '#f0f0ee' : '#fff',
               fontSize: 12,
               color: '#555',
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontWeight: 500,
+              whiteSpace: 'nowrap',
             }}
           >
-            Lịch sử
+            Đơn Online
           </button>
         </div>
 
-        {showHistory ? (
-          // History table
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+        {showOnlineOrders ? (
+          // Online orders table with search
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            {/* Search bar */}
+            <div style={{ padding: '10px 12px', borderBottom: '0.5px solid rgba(0,0,0,0.08)', background: '#fafafa' }}>
+              <input
+                type="text"
+                value={searchOnlineOrders}
+                onChange={(e) => setSearchOnlineOrders(e.target.value)}
+                placeholder="Tìm mã đơn hoặc tên khách..."
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 6,
+                  padding: '7px 10px',
+                  fontSize: 12,
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                }}
+              />
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, flex: 1 }}>
               <thead>
-                <tr style={{ background: '#f5f5f5', borderBottom: '1px solid #e0e0e0' }}>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#888' }}>ID</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#888' }}>Giờ</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#888' }}>Sản phẩm</th>
-                  <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#888' }}>Tổng</th>
+                <tr style={{ background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', position: 'sticky', top: 0 }}>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#888' }}>Mã đơn</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#888' }}>Khách hàng</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#888' }}>Giờ</th>
+                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#888' }}>Tổng</th>
                 </tr>
               </thead>
               <tbody>
-                {/* Mock history data */}
-                {[
-                  {
-                    id: 1,
-                    time: '08:32',
-                    items: [{ name: 'Coca', qty: 2, unit: 'Chai' }],
-                    total: 30000,
-                  },
-                  {
-                    id: 2,
-                    time: '09:14',
-                    items: [{ name: 'Vợt', qty: 2, unit: 'Cái' }],
-                    total: 50000,
-                  },
-                ].map((order) => (
-                  <tr key={order.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '10px 16px', color: '#666' }}>#{order.id}</td>
-                    <td style={{ padding: '10px 16px', color: '#666' }}>{order.time}</td>
-                    <td style={{ padding: '10px 16px', color: '#666' }}>
-                      {order.items.map((i, idx) => (
-                        <div key={idx}>
-                          {i.name} x{i.qty}
-                        </div>
-                      ))}
-                    </td>
-                    <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#D4840A' }}>
-                      {fmt(order.total)}đ
+                {filteredOnlineOrders.length > 0 ? (
+                  filteredOnlineOrders.map((order) => (
+                    <tr key={order.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '10px 12px', color: '#D4840A', fontWeight: 600 }}>{order.id}</td>
+                      <td style={{ padding: '10px 12px', color: '#1a1a1a' }}>{order.customerName}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666' }}>{order.time}</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#D4840A' }}>
+                        {fmt(order.total)}đ
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} style={{ padding: '30px 12px', textAlign: 'center', color: '#bbb' }}>
+                      Không tìm thấy đơn
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
@@ -542,16 +614,16 @@ export default function POSView({
 
         <button
           onClick={onCheckout}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || !bookingCode}
           style={{
             padding: '12px',
             borderRadius: 10,
             border: 'none',
-            background: cart.length > 0 ? '#D4840A' : '#e0e0e0',
+            background: cart.length > 0 && bookingCode ? '#D4840A' : '#e0e0e0',
             color: '#fff',
             fontWeight: 700,
             fontSize: 14,
-            cursor: cart.length > 0 ? 'pointer' : 'default',
+            cursor: cart.length > 0 && bookingCode ? 'pointer' : 'default',
             fontFamily: 'inherit',
             transition: 'background 0.15s',
           }}
