@@ -5,7 +5,6 @@ import {useFetchProductCategories, useFetchProducts} from "../hooks/useProduct.t
 import {Spin} from "antd";
 
 // ─── Global Styles ───────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const globalStyles = `
   html, body {
     color-scheme: light;
@@ -78,7 +77,6 @@ function QRCodeModal({
 
   // Simulate fetching QR code from backend
   useEffect(() => {
-    setLoading(true);
     // Mock API call to generate QR code
     const timer = setTimeout(() => {
       // Mock QR code data (in real app, would come from backend)
@@ -520,7 +518,7 @@ function POSView({
   const confirmNumpadQty = () => {
     const qty = parseInt(numpadInput) || 0;
     if (selectedItem && qty > 0) {
-      onQtyChange(selectedItem.item.id, selectedItem.variant.id, qty);
+      onQtyChange(selectedItem.item.productId, selectedItem.variant.productDetailId, qty);
       setNumpadInput('');
     }
   };
