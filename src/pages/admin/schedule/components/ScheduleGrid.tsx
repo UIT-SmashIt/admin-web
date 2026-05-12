@@ -18,7 +18,6 @@ export function ScheduleGrid({
   onShiftClick: (shift: ISchedule) => void;
 }) {
   const HOUR_H = 36; // px per hour
-  const COL_W = 110;
   const TIME_W = 52;
   const HEADER_H = 48;
 
@@ -26,7 +25,7 @@ export function ScheduleGrid({
 
   return (
     <div style={{ flex: 1, overflow: 'auto', position: 'relative', background: '#fff' }}>
-      <div style={{ display: 'flex', minWidth: TIME_W + COL_W * 7 }}>
+      <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
         {/* Time column */}
         <div style={{ width: TIME_W, flexShrink: 0 }}>
           <div style={{ height: HEADER_H }} />
@@ -36,6 +35,7 @@ export function ScheduleGrid({
               paddingTop: 4, paddingRight: 8, justifyContent: 'flex-end',
               fontSize: 11, color: '#bbb', fontWeight: 500,
               borderTop: '0.5px solid #f0f0ee',
+              boxSizing: 'border-box',
             }}>
               {String(h).padStart(2, '0')}:00
             </div>
@@ -48,7 +48,7 @@ export function ScheduleGrid({
           const isToday = new Date().toDateString() === date.toDateString();
 
           return (
-            <div key={di} style={{ width: COL_W, flexShrink: 0, position: 'relative' }}>
+            <div key={di} style={{ flex: 1, minWidth: 80, position: 'relative' }}>
               {/* Header */}
               <div style={{
                 height: HEADER_H, display: 'flex', flexDirection: 'column',
@@ -63,7 +63,7 @@ export function ScheduleGrid({
                 </div>
                 <div style={{
                   fontSize: 14, fontWeight: 700, marginTop: 2,
-                  color: isToday ? '#D4840A' : '#1a1a1a',
+                  color: isToday ? '#FFFFFF' : '#1a1a1a',
                   background: isToday ? '#D4840A' : 'transparent',
                   borderRadius: '50%', width: 26, height: 26,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
