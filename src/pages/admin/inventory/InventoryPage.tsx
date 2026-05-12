@@ -20,8 +20,10 @@ import {CategoryManagerModal} from "./components/CategoryModal.tsx";
 import {ImportHistoryView} from "./components/ImportHistoryView.tsx";
 import {ImportView} from "./components/ImportView.tsx";
 import {AdjustQtyModal} from "./components/AdjustQtyModal.tsx";
+import {RacketStatusTab} from "./components/RacketStatusTab.tsx";
+import type {RacketRental} from "../../../types/racket.type.ts";
 
-type View = 'list' | 'import';
+type View = 'list' | 'import' | 'racket';
 
 export default function KhoDichVu() {
   const { data: products, isLoading: productsLoading } = useFetchProducts();
@@ -38,6 +40,39 @@ export default function KhoDichVu() {
   const [adjustTarget, setAdjustTarget] = useState<IProduct | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [racketRentals] = useState<RacketRental[]>([
+    // Placeholder data
+    {
+      rentalId: 1,
+      orderId: '#DH001',
+      courtName: 'Sân 1 - Tầng 2',
+      rentalTime: new Date(Date.now() - 3600000).toISOString(),
+      returnTime: new Date(Date.now() + 3600000).toISOString(),
+      status: 'Đang sử dụng',
+      racketName: 'Vợt Victor JS-12',
+      quantity: 2,
+    },
+    {
+      rentalId: 2,
+      orderId: '#DH002',
+      courtName: 'Sân 2 - Tầng 1',
+      rentalTime: new Date(Date.now() - 7200000).toISOString(),
+      returnTime: new Date(Date.now() - 3600000).toISOString(),
+      status: 'Hoàn tất',
+      racketName: 'Vợt Yonex Astrox',
+      quantity: 1,
+    },
+    {
+      rentalId: 3,
+      orderId: '#DH003',
+      courtName: 'Sân 3 - Tầng 3',
+      rentalTime: new Date(Date.now() + 86400000).toISOString(),
+      returnTime: new Date(Date.now() + 90000000).toISOString(),
+      status: 'Đã đặt',
+      racketName: 'Vợt Victor JS-12',
+      quantity: 3,
+    },
+  ]);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2200); };
@@ -133,7 +168,51 @@ export default function KhoDichVu() {
             <span style={{ fontSize: 14, color: '#D4840A', fontWeight: 500 }}>Nhập hàng</span>
           </>
         )}
+        {view === 'racket' && (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+            <span style={{ fontSize: 14, color: '#D4840A', fontWeight: 500 }}>Quản lý vợt</span>
+          </>
+        )}
       </div>
+
+      {/* Tab buttons */}
+      {view === 'list' && (
+        <div style={{ display: 'flex', gap: 2, padding: '8px 20px', background: '#fff', borderBottom: '1px solid #f0f0f0', flexShrink: 0 }}>
+          <button
+            onClick={() => setView('list')}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              background: '#D4840A',
+              color: '#fff',
+              borderRadius: '6px 6px 0 0',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Kho hàng
+          </button>
+          <button
+            onClick={() => setView('racket')}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              background: 'transparent',
+              color: '#999',
+              borderRadius: '6px 6px 0 0',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Quản lý vợt 🎾
+          </button>
+        </div>
+      )}
 
       {/* Body */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
@@ -148,8 +227,12 @@ export default function KhoDichVu() {
             onAdjustQty={item => setAdjustTarget(item)}
             onManageCategories={() => setShowCategoryManager(true)}
           />
-        ) : (
+        ) : view === 'import' ? (
           <ImportView items={products ?? []} onBack={() => setView('list')} onImport={handleImport} />
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', paddingTop: 20 }}>
+            <RacketStatusTab rentals={racketRentals} onBack={() => setView('list')} />
+          </div>
         )}
       </div>
     </div>
