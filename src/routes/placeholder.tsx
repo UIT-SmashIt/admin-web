@@ -2,7 +2,6 @@ import { Route } from '@tanstack/react-router'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import CourtStatus from '../pages/CourtStatus'
-import Banhang from '../pages/Sale'
 import KhoDichVu from '../pages/admin/inventory/InventoryPage.tsx'
 import Nhanvien from '../pages/admin/schedule/Staff.tsx'
 import DoanhThu from '../pages/Revenue'
@@ -13,7 +12,7 @@ import LichDat from '../pages/Lịch đặt/Lichdat'
 import DatLichLinhHoat from '../pages/Lịch đặt/DatLichLinhHoat'
 import DatLichCongDong from '../pages/Lịch đặt/DatLichCongDong'
 import type { Booking } from '../pages/Lịch đặt/LichDatTypes'
-import DuyetDon from '../pages/Approval'
+import { INITIAL_BOOKINGS } from '../pages/Lịch đặt/LichDatTypes'
 import CongDong from '../pages/Community'
 import rootRoute from './root'
 
@@ -38,7 +37,7 @@ function PlaceholderPage({ title }: { title: string }) {
 
 function LichDatWrapper() {
   const navigate = useNavigate()
-  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS)
 
   return (
     <LichDat
@@ -77,11 +76,6 @@ const placeholderRoutes = [
     getParentRoute: () => rootRoute,
     path: '/trang-thai-san',
     component: CourtStatus,
-  }),
-  new Route({
-    getParentRoute: () => rootRoute,
-    path: '/ban-hang',
-    component: Banhang,
   }),
   new Route({
     getParentRoute: () => rootRoute,
@@ -127,11 +121,6 @@ const placeholderRoutes = [
     getParentRoute: () => rootRoute,
     path: '/dat-lich-cong-dong',
     component: DatLichCongDongWrapper,
-  }),
-  new Route({
-    getParentRoute: () => rootRoute,
-    path: '/duyet-don',
-    component: DuyetDon,
   }),
   new Route({
     getParentRoute: () => rootRoute,

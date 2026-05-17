@@ -152,7 +152,6 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Vận hành',
     children: [
       { key: 'court-status', label: 'Trạng thái sân', path: '/trang-thai-san', icon: Icons.courtStatus },
-      { key: 'sales', label: 'Bán hàng', path: '/ban-hang', icon: Icons.sales },
       { key: 'inventory', label: 'Kho & dịch vụ', path: '/kho-dich-vu', icon: Icons.inventory },
       { key: 'staff', label: 'Quản lý nhân sự', path: '/nhan-su', icon: Icons.staff },
       { key: 'revenue', label: 'Doanh thu', path: '/doanh-thu', icon: Icons.revenue },
@@ -166,7 +165,6 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Quản lý',
     children: [
       { key: 'schedule', label: 'Lịch đặt', path: '/lich-dat', icon: Icons.schedule },
-      { key: 'approvals', label: 'Duyệt đơn', path: '/duyet-don', icon: Icons.approvals },
       { key: 'community', label: 'Cộng đồng', path: '/cong-dong', icon: Icons.community },
       { key: 'profile', label: 'Thông tin cá nhân', path: '/thong-tin', icon: Icons.profile },
     ],
