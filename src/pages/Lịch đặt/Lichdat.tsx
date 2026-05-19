@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useFetchProducts } from '../../hooks/useProduct';
 import {
-  type Booking, type BookingTab, type PaymentStatus, type BookingApprovalStatus, type SelectedService,
-  INITIAL_BOOKINGS, PAYMENT_STATUS_CONFIG, BOOKING_APPROVAL_STATUS_CONFIG, COURTS, SERVICES_LIST, fmt,
+  type Booking, type BookingTab, type PaymentStatus, type SelectedService,
+  PAYMENT_STATUS_CONFIG, COURTS, SERVICES_LIST, fmt,
 } from './LichDatTypes';
+import { productsToServices } from '../../utils/serviceProductMapping';
 
 // ─── PaymentBadge ─────────────────────────────────────────────────────────────
 
@@ -17,25 +19,6 @@ function PaymentBadge({ status, small }: { status: PaymentStatus; small?: boolea
       fontSize: small ? 10 : 11, fontWeight: 700,
       letterSpacing: '0.02em',
     }}>{cfg.label}</span>
-  );
-}
-
-// ─── ApprovalStatusBadge ──────────────────────────────────────────────────────
-
-function ApprovalStatusBadge({ status, small }: { status: BookingApprovalStatus; small?: boolean }) {
-  const cfg = BOOKING_APPROVAL_STATUS_CONFIG[status];
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      padding: small ? '2px 8px' : '4px 11px', borderRadius: 20,
-      background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`,
-      fontSize: small ? 11 : 12, fontWeight: 600,
-    }}>
-      {status === 'pending' && '⏳'}
-      {status === 'approved' && '✅'}
-      {status === 'cancelled' && '❌'}
-      {cfg.label}
-    </span>
   );
 }
 
@@ -182,16 +165,23 @@ function BookingTypePopup({ onSelectCommunity, onSelectSingle, onClose }: {
 
 // ─── Services Modal ───────────────────────────────────────────────────────────
 
-function ServicesModal({ booking, onAdd, onClose }: {
-  booking: Booking;
+function ServicesModal({ onAdd, onClose, services }: {
   onAdd: (services: SelectedService[]) => void;
   onClose: () => void;
+  services: typeof SERVICES_LIST;
 }) {
   const [selected, setSelected] = useState<Record<number, number>>({});
-  const categories = ['Cầu', 'Vợt', 'Nước', 'Phụ kiện', 'Snack'];
+  
+  // Group services by category
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    services.forEach(s => cats.add(s.category));
+    return Array.from(cats).sort();
+  }, [services]);
+  
   const servicesToAdd: SelectedService[] = Object.entries(selected)
     .map(([id, qty]) => {
-      const service = SERVICES_LIST.find(s => s.id === parseInt(id));
+      const service = services.find(s => s.id === parseInt(id));
       return service ? { service, qty } : null;
     })
     .filter((s): s is SelectedService => s !== null);
@@ -202,7 +192,7 @@ function ServicesModal({ booking, onAdd, onClose }: {
         <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a', marginBottom: 16 }}>+ Thêm dịch vụ</div>
 
         {categories.map(category => {
-          const items = SERVICES_LIST.filter(s => s.category === category);
+          const items = services.filter(s => s.category === category);
           return (
             <div key={category} style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 11.5, color: '#aaa', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>{category}</div>
@@ -244,11 +234,11 @@ function ServicesModal({ booking, onAdd, onClose }: {
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
-function DetailModal({ booking, onClose, onStatusChange, onApprovalChange, onAddServices }: {
+function DetailModal({ booking, onClose, onStatusChange, onAddServices, services }: {
   booking: Booking; onClose: () => void;
   onStatusChange: (id: number, s: PaymentStatus) => void;
-  onApprovalChange: (id: number, s: BookingApprovalStatus) => void;
   onAddServices: (id: number, services: SelectedService[]) => void;
+  services: typeof SERVICES_LIST;
 }) {
   const [showServicesModal, setShowServicesModal] = useState(false);
   const court = COURTS.find(c => c.id === booking.courtId);
@@ -259,9 +249,9 @@ function DetailModal({ booking, onClose, onStatusChange, onApprovalChange, onAdd
     <>
       {showServicesModal && (
         <ServicesModal
-          booking={booking}
-          onAdd={(services) => { onAddServices(booking.id, services); }}
+          onAdd={(svc) => { onAddServices(booking.id, svc); }}
           onClose={() => setShowServicesModal(false)}
+          services={services}
         />
       )}
       <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -271,7 +261,6 @@ function DetailModal({ booking, onClose, onStatusChange, onApprovalChange, onAdd
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>{booking.customerName}</div>
               <div style={{ marginTop: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                <ApprovalStatusBadge status={booking.approvalStatus} />
                 <PaymentBadge status={booking.paymentStatus} />
                 <span style={{ fontSize: 11, background: isCommunity ? '#F3E8FF' : '#EFF6FF', padding: '2px 7px', borderRadius: 8, fontWeight: 500, color: isCommunity ? '#7B1FA2' : '#378ADD' }}>
                   {isCommunity ? '🏘️ Cộng đồng' : '⚡ Linh hoạt'}
@@ -366,40 +355,18 @@ function DetailModal({ booking, onClose, onStatusChange, onApprovalChange, onAdd
             </div>
 
             {/* Status changes */}
-            <div style={{ marginBottom: 14 }}>
+            <div>
               <div style={{ fontSize: 11.5, color: '#aaa', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>Trạng thái thanh toán</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {(['unpaid','deposited','paid'] as PaymentStatus[]).map(s => {
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {(['unpaid','deposited','paid','cancelled'] as PaymentStatus[]).map(s => {
                   const cfg = PAYMENT_STATUS_CONFIG[s];
                   const active = booking.paymentStatus === s;
                   return (
                     <button key={s} onClick={() => { onStatusChange(booking.id, s); }} style={{
-                      flex: 1, padding: '9px', borderRadius: 9, border: `1.5px solid ${active ? cfg.bg : '#e0e0e0'}`,
+                      flex: 1, minWidth: 80, padding: '9px', borderRadius: 9, border: `1.5px solid ${active ? cfg.bg : '#e0e0e0'}`,
                       background: active ? cfg.bg : '#fafafa', color: active ? cfg.color : '#666',
                       fontWeight: active ? 700 : 400, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
                     }}>{cfg.label}</button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Approval status changes */}
-            <div>
-              <div style={{ fontSize: 11.5, color: '#aaa', fontWeight: 600, marginBottom: 8, textTransform: 'uppercase' }}>Trạng thái duyệt</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {(['pending','approved','cancelled'] as BookingApprovalStatus[]).map(s => {
-                  const cfg = BOOKING_APPROVAL_STATUS_CONFIG[s];
-                  const active = booking.approvalStatus === s;
-                  return (
-                    <button key={s} onClick={() => { onApprovalChange(booking.id, s); }} style={{
-                      flex: 1, padding: '9px 10px', borderRadius: 9, border: `1.5px solid ${active ? cfg.color : '#e0e0e0'}`,
-                      background: active ? cfg.bg : '#fafafa', color: active ? cfg.color : '#999',
-                      fontWeight: active ? 700 : 400, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                    }}>
-                      {s === 'pending' && '⏳ Chờ'}
-                      {s === 'approved' && '✅ Duyệt'}
-                      {s === 'cancelled' && '❌ Hủy'}
-                    </button>
                   );
                 })}
               </div>
@@ -421,11 +388,18 @@ interface LichDatProps {
 }
 
 export default function LichDat({ onNavigateCommunity, onNavigateSingle, bookings, setBookings }: LichDatProps) {
+  const { data: products } = useFetchProducts();
   const [tab, setTab] = useState<BookingTab>('all');
   const [showTypePopup, setShowTypePopup] = useState(false);
   const [filterDate, setFilterDate] = useState('');
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Booking | null>(null);
+
+  // Use products from API if available, otherwise use hardcoded services
+  const servicesList = useMemo(() => 
+    products && products.length > 0 ? productsToServices(products) : SERVICES_LIST,
+    [products]
+  );
 
   const filtered = useMemo(() => bookings.filter(b => {
     const matchTab = tab === 'all'
@@ -436,11 +410,6 @@ export default function LichDat({ onNavigateCommunity, onNavigateSingle, booking
 
   const handleStatusChange = (id: number, status: PaymentStatus) =>
     setBookings(prev => prev.map(b => b.id === id ? { ...b, paymentStatus: status } : b));
-
-  const handleApprovalChange = (id: number, status: BookingApprovalStatus) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, approvalStatus: status } : b));
-    setDetailBooking(prev => prev ? { ...prev, approvalStatus: status } : null);
-  };
 
   const handleAddServices = (id: number, services: SelectedService[]) => {
     const newServiceFee = services.reduce((sum, s) => sum + (s.service.price * s.qty), 0);
@@ -486,8 +455,8 @@ export default function LichDat({ onNavigateCommunity, onNavigateSingle, booking
           booking={detailBooking}
           onClose={() => setDetailBooking(null)}
           onStatusChange={(id, s) => handleStatusChange(id, s)}
-          onApprovalChange={(id, s) => handleApprovalChange(id, s)}
           onAddServices={(id, services) => handleAddServices(id, services)}
+          services={servicesList}
         />
       )}
       {deleteTarget && (

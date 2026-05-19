@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useFetchProducts } from '../../hooks/useProduct';
 import {
   type Booking, type SelectedService, COURTS, TIME_SLOTS,
   BOOKED_SLOTS, PENDING_SLOTS, SERVICES_LIST,
   COURT_PRICE_PER_HOUR, fmt, calcHours,
 } from './LichDatTypes';
+import { productsToServices } from '../../utils/serviceProductMapping';
 
 // ─── Time Slot Grid ───────────────────────────────────────────────────────────
 
@@ -68,16 +70,18 @@ function ServicesModal({
   selected,
   onChange,
   onClose,
+  services,
 }: {
   selected: SelectedService[];
   onChange: (s: SelectedService[]) => void;
   onClose: () => void;
+  services: typeof SERVICES_LIST;
 }) {
   const [local, setLocal] = useState<SelectedService[]>(selected.map(s => ({ ...s })));
   const [activeCategory, setActiveCategory] = useState('Tất cả');
-  const categories = ['Tất cả', ...Array.from(new Set(SERVICES_LIST.map(s => s.category)))];
+  const categories = useMemo(() => ['Tất cả', ...Array.from(new Set(services.map(s => s.category)))], [services]);
 
-  const displayed = activeCategory === 'Tất cả' ? SERVICES_LIST : SERVICES_LIST.filter(s => s.category === activeCategory);
+  const displayed = activeCategory === 'Tất cả' ? services : services.filter(s => s.category === activeCategory);
 
   const getQty = (id: number) => local.find(s => s.service.id === id)?.qty ?? 0;
 
@@ -270,16 +274,23 @@ interface Props {
 }
 
 export default function DatLichLinhHoat({ editing, onBack, onSave }: Props) {
+  const { data: products } = useFetchProducts();
   const [customerName, setCustomerName] = useState(editing?.customerName ?? '');
   const [customerCode, setCustomerCode] = useState(editing?.customerCode ?? '');
   const [phone, setPhone] = useState(editing?.phone ?? '');
   const [courtId, setCourtId] = useState(editing?.courtId ?? 1);
-  const [date, setDate] = useState(editing?.date ?? '');
+  const [date, setDate] = useState(editing?.date ? editing.date.split('/').reverse().join('-') : '');
   const [selectedSlots, setSelectedSlots] = useState<string[]>(editing ? [editing.startTime] : []);
   const [services, setServices] = useState<SelectedService[]>(editing?.services ?? []);
   const [note, setNote] = useState(editing?.note ?? '');
   const [showServices, setShowServices] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
+
+  // Use products from API if available, otherwise use hardcoded services
+  const servicesList = useMemo(() => 
+    products && products.length > 0 ? productsToServices(products) : SERVICES_LIST,
+    [products]
+  );
 
   const toggleSlot = (slot: string) =>
     setSelectedSlots(prev => prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]);
@@ -325,7 +336,7 @@ export default function DatLichLinhHoat({ editing, onBack, onSave }: Props) {
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {showServices && (
-        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} />
+        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} services={servicesList} />
       )}
       {showInvoice && (
         <InvoiceModal

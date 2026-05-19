@@ -40,7 +40,7 @@ export function AdminListModal({
         email: form.email,
         phoneNumber: form.phone,
         role: form.role,
-        color: selPalette.color
+        color: selPalette.text
       });
     setMode('list');
   };

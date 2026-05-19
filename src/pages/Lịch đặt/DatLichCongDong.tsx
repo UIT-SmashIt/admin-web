@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useFetchProducts } from '../../hooks/useProduct';
 import {
   type Booking, type SelectedService, COURTS, TIME_SLOTS,
   BOOKED_SLOTS, PENDING_SLOTS, SERVICES_LIST, PLAY_LEVELS,
   COURT_PRICE_PER_HOUR, fmt, calcHours,
   isoToVN, minCommunityDate,
 } from './LichDatTypes';
+import { productsToServices } from '../../utils/serviceProductMapping';
 
 // ─── Time Slot Grid ───────────────────────────────────────────────────────────
 
@@ -58,13 +60,14 @@ function TimeSlotGrid({ courtId, selected, onSelect }: {
 
 // ─── Services Modal ───────────────────────────────────────────────────────────
 
-function ServicesModal({ selected, onChange, onClose }: {
+function ServicesModal({ selected, onChange, onClose, services }: {
   selected: SelectedService[]; onChange: (s: SelectedService[]) => void; onClose: () => void;
+  services: typeof SERVICES_LIST;
 }) {
   const [local, setLocal] = useState<SelectedService[]>(selected.map(s => ({ ...s })));
   const [cat, setCat] = useState('Tất cả');
-  const cats = ['Tất cả', ...Array.from(new Set(SERVICES_LIST.map(s => s.category)))];
-  const displayed = cat === 'Tất cả' ? SERVICES_LIST : SERVICES_LIST.filter(s => s.category === cat);
+  const cats = useMemo(() => ['Tất cả', ...Array.from(new Set(services.map(s => s.category)))], [services]);
+  const displayed = cat === 'Tất cả' ? services : services.filter(s => s.category === cat);
   const getQty = (id: number) => local.find(s => s.service.id === id)?.qty ?? 0;
   const setQty = (svc: typeof SERVICES_LIST[0], qty: number) => {
     if (qty <= 0) setLocal(prev => prev.filter(s => s.service.id !== svc.id));
@@ -299,6 +302,7 @@ interface Props {
 }
 
 export default function DatLichCongDong({ editing, onBack, onSave }: Props) {
+  const { data: products } = useFetchProducts();
   const [customerName, setCustomerName] = useState(editing?.customerName ?? '');
   const [customerCode, setCustomerCode] = useState(editing?.customerCode ?? '');
   const [phone, setPhone] = useState(editing?.phone ?? '');
@@ -314,6 +318,12 @@ export default function DatLichCongDong({ editing, onBack, onSave }: Props) {
   const [showInvoice, setShowInvoice] = useState(false);
   const [showCaption, setShowCaption] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<Booking | null>(null);
+
+  // Use products from API if available, otherwise use hardcoded services
+  const servicesList = useMemo(() => 
+    products && products.length > 0 ? productsToServices(products) : SERVICES_LIST,
+    [products]
+  );
 
   const minDate = minCommunityDate();
   const dateError = date && date < minDate;
@@ -385,7 +395,7 @@ export default function DatLichCongDong({ editing, onBack, onSave }: Props) {
 
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
-      {showServices && <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} />}
+      {showServices && <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} services={servicesList} />}
       {showInvoice && (
         <InvoiceModal customerName={customerName} courtId={courtId} startTime={startTime} endTime={endTime} services={services} onConfirm={handleInvoiceConfirm} onClose={() => setShowInvoice(false)} />
       )}

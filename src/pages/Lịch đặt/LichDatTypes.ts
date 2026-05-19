@@ -1,9 +1,8 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type BookingType = 'single' | 'community';
-export type PaymentStatus = 'unpaid' | 'deposited' | 'paid';
+export type PaymentStatus = 'unpaid' | 'deposited' | 'paid' | 'cancelled';
 export type BookingTab = 'single' | 'community' | 'all';
-export type BookingApprovalStatus = 'pending' | 'approved' | 'cancelled';
 
 export interface ServiceItem {
   id: number;
@@ -32,7 +31,6 @@ export interface Booking {
   serviceFee: number;
   deposit: number;
   paymentStatus: PaymentStatus;
-  approvalStatus: BookingApprovalStatus;
   paymentMethod?: 'cash' | 'qr';
   services: SelectedService[];
   note: string;
@@ -124,12 +122,7 @@ export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; color
   unpaid:    { label: 'Chưa thanh toán', color: '#fff',    bg: '#E53E3E' },
   deposited: { label: 'Đã cọc',          color: '#1a1a1a', bg: '#F6C90E' },
   paid:      { label: 'Đã thanh toán',   color: '#fff',    bg: '#38A169' },
-};
-
-export const BOOKING_APPROVAL_STATUS_CONFIG: Record<BookingApprovalStatus, { label: string; color: string; bg: string; border: string }> = {
-  pending:   { label: 'Chờ duyệt', color: '#B45309', bg: '#FFFBEB', border: '#FDE68A' },
-  approved:  { label: 'Đã duyệt',  color: '#166534', bg: '#F0FDF4', border: '#BBF7D0' },
-  cancelled: { label: 'Đã hủy',    color: '#A32D2D', bg: '#FFF5F5', border: '#FECDD3' },
+  cancelled: { label: 'Đã hủy',          color: '#fff',    bg: '#A32D2D' },
 };
 
 export const INITIAL_BOOKINGS: Booking[] = [
@@ -137,7 +130,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     id: 1, type: 'single', customerName: 'Nguyễn Văn An', customerCode: 'NVA01',
     phone: '0901234567', courtId: 1, date: '16/04/2026',
     startTime: '6:00', endTime: '8:00', courtFee: 160000, serviceFee: 15000,
-    deposit: 80000, paymentStatus: 'unpaid', approvalStatus: 'pending',
+    deposit: 80000, paymentStatus: 'unpaid',
     services: [{ service: SERVICES_LIST[4], qty: 1 }],
     note: '', createdAt: '16/04/2026',
   },
@@ -146,7 +139,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     phone: '0912345678', courtId: 2, date: '20/04/2026',
     startTime: '7:00', endTime: '9:00',
     courtFee: 320000, serviceFee: 0, deposit: 160000,
-    paymentStatus: 'deposited', approvalStatus: 'approved', services: [], note: '',
+    paymentStatus: 'deposited', services: [], note: '',
     createdAt: '16/04/2026',
     maxPlayers: 4, currentPlayers: 2, level: 'Trung bình',
     caption: '🏸 Tìm 2 người chơi cầu lông sáng 20/04 tại Sân 2, 7:00–9:00. Trình độ trung bình. Ai quan tâm nhắn tin nhé!',
@@ -155,7 +148,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     id: 3, type: 'single', customerName: 'Lê Dương', customerCode: 'LD03',
     phone: '0923456789', courtId: 3, date: '17/04/2026',
     startTime: '17:00', endTime: '19:00', courtFee: 160000, serviceFee: 220000,
-    deposit: 80000, paymentStatus: 'unpaid', approvalStatus: 'pending',
+    deposit: 80000, paymentStatus: 'unpaid',
     services: [{ service: SERVICES_LIST[0], qty: 1 }], note: '', createdAt: '16/04/2026',
   },
   {
@@ -163,7 +156,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     phone: '0934567890', courtId: 1, date: '22/04/2026',
     startTime: '18:00', endTime: '20:00',
     courtFee: 160000, serviceFee: 30000, deposit: 80000,
-    paymentStatus: 'paid', approvalStatus: 'approved', paymentMethod: 'cash',
+    paymentStatus: 'paid', paymentMethod: 'cash',
     services: [{ service: SERVICES_LIST[3], qty: 1 }], note: '',
     createdAt: '16/04/2026',
     maxPlayers: 6, currentPlayers: 6, level: 'Khá',
@@ -173,7 +166,7 @@ export const INITIAL_BOOKINGS: Booking[] = [
     id: 5, type: 'single', customerName: 'Bùi Nam', customerCode: 'BN05',
     phone: '0945678901', courtId: 2, date: '18/04/2026',
     startTime: '8:00', endTime: '10:00', courtFee: 160000, serviceFee: 85000,
-    deposit: 80000, paymentStatus: 'deposited', approvalStatus: 'pending',
+    deposit: 80000, paymentStatus: 'deposited',
     services: [{ service: SERVICES_LIST[1], qty: 1 }], note: '', createdAt: '16/04/2026',
   },
 ];

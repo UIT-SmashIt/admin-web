@@ -55,7 +55,7 @@ export function ScheduleGrid({
                 alignItems: 'center', justifyContent: 'center',
                 borderLeft: '0.5px solid #f0f0ee',
                 background: isToday ? '#FFF9F0' : '#fafafa',
-                position: 'sticky', top: 0, zIndex: 2,
+                position: 'sticky', top: 0, zIndex: 10,
                 borderBottom: '1px solid #ebebeb',
               }}>
                 <div style={{ fontSize: 11, color: isToday ? '#D4840A' : '#aaa', fontWeight: 600 }}>
@@ -73,7 +73,7 @@ export function ScheduleGrid({
               </div>
 
               {/* Hour cells */}
-              <div style={{ position: 'relative', height: gridH, borderLeft: '0.5px solid #f0f0ee' }}>
+              <div style={{ position: 'relative', height: gridH, borderLeft: '0.5px solid #f0f0ee'}}>
                 {HOURS.map(h => (
                   <div
                     key={h}
@@ -81,6 +81,7 @@ export function ScheduleGrid({
                     style={{
                       height: HOUR_H, borderTop: '0.5px solid #f5f5f3',
                       cursor: 'pointer', transition: 'background 0.1s',
+                      boxSizing: 'border-box',
                     }}
                     onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = '#FFFBF6'}
                     onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = ''}
@@ -98,13 +99,14 @@ export function ScheduleGrid({
                       key={shift.scheduleId}
                       onClick={e => { e.stopPropagation(); onShiftClick(shift); }}
                       style={{
-                        position: 'absolute', top: startOffset + 1, left: 3, right: 3,
+                        position: 'absolute', top: startOffset, left: 3, right: 3,
                         height, borderRadius: 8, overflow: 'hidden',
-                        background: (shiftStaff[0]?.color ?? '#f0f0ee') + '20',
+                        background: (shiftStaff[0]?.color ?? '#f0f0ee') + '2',
                         border: `1.5px solid ${shiftStaff[0]?.color ?? '#ccc'}44`,
                         cursor: 'pointer', padding: '5px 7px',
                         transition: 'all 0.12s',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                        boxSizing: 'border-box',
                       }}
                       onMouseEnter={e => {
                         (e.currentTarget as HTMLDivElement).style.transform = 'scale(1.02)';
@@ -116,7 +118,7 @@ export function ScheduleGrid({
                       }}
                     >
                       <div style={{ fontSize: 10, color: shiftStaff[0]?.color ?? '#666', fontWeight: 600, marginBottom: 3 }}>
-                        {shift.fromTime.padStart(2,'0')}:00 – {shift.toTime.padStart(2,'0')}:00
+                        {shift.fromTime.padStart(2,'0')} – {shift.toTime.padStart(2,'0')}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         {shiftStaff.map(s => (
