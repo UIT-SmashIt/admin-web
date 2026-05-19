@@ -26,8 +26,8 @@ export function ScheduleModal({
   onClose: () => void;
 }) {
   const [selectedStaff, setSelectedStaff] = useState<number[]>(existing?.adminIds ?? []);
-  const [startHour, setStartHour] = useState(formatTimeToNumber(existing?.fromTime) ?? 6);
-  const [endHour, setEndHour] = useState(formatTimeToNumber(existing?.toTime) ?? 10);
+  const [startHour, setStartHour] = useState(existing ? formatTimeToNumber(existing.fromTime) : 6);
+  const [endHour, setEndHour] = useState(existing ? formatTimeToNumber(existing.toTime) : 10);
 
   const toggleStaff = (id: number) =>
     setSelectedStaff(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
