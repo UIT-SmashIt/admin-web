@@ -1,5 +1,30 @@
 export type OrderType = 'daily' | 'fixed';
 export type OrderStatus = 'unpaid' | 'deposit' | 'paid';
+export type CourtStatus = 'Available' | 'Unavailable' | 'Maintenance';
+
+export interface ICourt {
+  courtId: number;
+  name: string;
+  numOfIndex: number;
+  unitPrice: number;
+  status: CourtStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourtAddPayload {
+  name: string;
+  numOfIndex: number;
+  unitPrice: number;
+  status: CourtStatus;
+}
+
+export interface CourtEditPayload {
+  name?: string;
+  numOfIndex?: number;
+  unitPrice?: number;
+  status?: CourtStatus;
+}
 
 export interface IOrder {
   id: string;
