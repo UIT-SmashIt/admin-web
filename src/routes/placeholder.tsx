@@ -1,7 +1,7 @@
 import { Route } from '@tanstack/react-router'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import CourtStatus from '../pages/CourtStatus'
+import CourtStatus from '../pages/admin/court/CourtStatus.tsx'
 import KhoDichVu from '../pages/admin/inventory/InventoryPage.tsx'
 import Nhanvien from '../pages/admin/schedule/Staff.tsx'
 import DoanhThu from '../pages/Revenue'
