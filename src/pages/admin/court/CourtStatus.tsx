@@ -1,70 +1,167 @@
-import { useState, useEffect } from 'react';
-import { COURTS } from './consts/courts';
-import { MOCK_ORDERS } from './consts/mock-orders';
-import { toInputValue, formatDate } from './utils/helpers';
-import { globalStyles } from './utils/styles';
-import { AllCourtsView } from './components/AllCourtsView';
-import { CourtDetailView } from './components/CourtDetailView';
-import { fetchOrders } from '../../../api/court.api';
-import type { IOrder } from '../../../types/court.type';
+import { useState } from 'react';
+import { useFetchCourts, useAddCourt, useEditCourt, useRemoveCourt } from '../../../hooks/useCourt';
+import type { ICourt, CourtStatus } from '../../../types/court.type';
 
 export default function CourtStatus() {
-  const [view, setView] = useState<'all' | 'court'>('all');
-  const [selectedDate, setSelectedDate] = useState<string>(toInputValue(new Date()));
-  const [selectedCourt, setSelectedCourt] = useState<string>(COURTS[0]);
-  const [selectedSlot, setSelectedSlot] = useState<{ court: string; time: string } | null>(null);
-  const [orders, setOrders] = useState<IOrder[]>(MOCK_ORDERS);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: courts, isLoading: loading, error } = useFetchCourts();
+  const addCourtMutation = useAddCourt();
+  const editCourtMutation = useEditCourt();
+  const removeCourtMutation = useRemoveCourt();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCourt, setEditingCourt] = useState<ICourt | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    numOfIndex: '',
+    unitPrice: '',
+    status: 'Available' as CourtStatus,
+  });
+  
+  const isSubmitting = addCourtMutation.isPending || editCourtMutation.isPending;
+  const isDeleting = removeCourtMutation.isPending;
 
-  // Fetch orders when date changes
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchOrders(selectedDate);
-        setOrders(data);
-      } catch (err) {
-        console.error('Failed to fetch orders:', err);
-        setError('Lỗi khi tải dữ liệu lịch đặt');
-        // Fallback to mock data on error
-        setOrders(MOCK_ORDERS);
-      } finally {
-        setLoading(false);
-      }
+  const handleOpenModal = (court?: ICourt) => {
+    if (court) {
+      setEditingCourt(court);
+      setFormData({
+        name: court.name,
+        numOfIndex: court.numOfIndex.toString(),
+        unitPrice: court.unitPrice.toString(),
+        status: court.status,
+      });
+    } else {
+      setEditingCourt(null);
+      setFormData({
+        name: '',
+        numOfIndex: '',
+        unitPrice: '',
+        status: 'Available' as CourtStatus,
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCourt(null);
+    setFormData({
+      name: '',
+      numOfIndex: '',
+      unitPrice: '',
+      status: 'Available' as CourtStatus,
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name.trim() || !formData.numOfIndex.trim() || !formData.unitPrice.trim()) {
+      alert('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    const payload = {
+      name: formData.name,
+      numOfIndex: parseInt(formData.numOfIndex),
+      unitPrice: parseInt(formData.unitPrice),
+      status: formData.status,
     };
 
-    loadOrders();
-  }, [selectedDate]);
-
-  const handleSlotClick = (court: string, time: string) => {
-    setSelectedSlot((prev) =>
-      prev?.court === court && prev?.time === time ? null : { court, time }
-    );
-    if (view === 'court') setSelectedCourt(court);
+    try {
+      if (editingCourt) {
+        await editCourtMutation.mutateAsync({
+          id: editingCourt.courtId as number,
+          data: payload,
+        });
+        alert('Cập nhật sân bóng thành công');
+      } else {
+        await addCourtMutation.mutateAsync(payload);
+        alert('Thêm sân bóng thành công');
+      }
+      handleCloseModal();
+    } catch (err) {
+      alert('Có lỗi xảy ra');
+      console.error(err);
+    }
   };
 
-  const handleCourtChange = (court: string) => {
-    setSelectedCourt(court);
-    setSelectedSlot(null);
+  const handleDelete = async (courtId: string | number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa sân bóng này?')) return;
+
+    try {
+      await removeCourtMutation.mutateAsync(courtId as number);
+      alert('Xóa sân bóng thành công');
+    } catch (err) {
+      alert('Có lỗi xảy ra khi xóa');
+      console.error(err);
+    }
   };
 
-  const displayDate = formatDate(new Date(selectedDate + 'T00:00:00'));
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Available':
+        return { bg: '#EAF3DE', color: '#3B6D11' };
+      case 'Unavailable':
+        return { bg: '#FCEBEB', color: '#A32D2D' };
+      case 'Maintenance':
+        return { bg: '#FFF3E0', color: '#E67E22' };
+      default:
+        return { bg: '#E6F1FB', color: '#185FA5' };
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'Available': 'Có sẵn',
+      'Unavailable': 'Không có sẵn',
+      'Maintenance': 'Bảo trì',
+    };
+    return labels[status] || status;
+  };
+
+  const formatPrice = (price: number): string => {
+    return price.toLocaleString('vi-VN');
+  };
 
   return (
     <div
       style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '20px 0',
+        padding: '20px 24px',
         fontFamily: "'Be Vietnam Pro', sans-serif",
         background: '#f7f7f5',
         boxSizing: 'border-box',
         width: '100%',
       }}
     >
-      <style>{globalStyles}</style>
+      {/* Page header */}
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân bóng</div>
+          <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Danh sách các sân bóng</div>
+        </div>
+        <button
+          onClick={() => handleOpenModal()}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#185FA5',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => {
+            (e.target as HTMLButtonElement).style.background = '#134078';
+          }}
+          onMouseLeave={(e) => {
+            (e.target as HTMLButtonElement).style.background = '#185FA5';
+          }}
+        >
+          + Thêm sân mới
+        </button>
+      </div>
 
       {/* Error message */}
       {error && (
@@ -73,13 +170,13 @@ export default function CourtStatus() {
             backgroundColor: '#FCEBEB',
             color: '#A32D2D',
             padding: '12px 16px',
-            margin: '12px 24px',
+            marginBottom: 16,
             borderRadius: 8,
             border: '0.5px solid #F4A9A9',
             fontSize: 13,
           }}
         >
-          {error}
+          Lỗi khi tải danh sách sân
         </div>
       )}
 
@@ -90,7 +187,7 @@ export default function CourtStatus() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            padding: '40px 24px',
+            padding: '40px 0',
             color: '#888',
           }}
         >
@@ -98,127 +195,322 @@ export default function CourtStatus() {
         </div>
       )}
 
-      {!loading && (
-        <>
-          {/* Page header */}
+      {/* Courts table */}
+      {!loading && (courts?.length ?? 0) > 0 && (
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 12,
+            border: '0.5px solid rgba(0,0,0,0.08)',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Table header */}
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 20,
-              paddingLeft: 24,
-              paddingRight: 24,
-              flexWrap: 'wrap',
-              gap: 10,
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+              backgroundColor: '#f7f7f5',
+              borderBottom: '0.5px solid rgba(0,0,0,0.08)',
+              padding: '12px 16px',
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#888',
+              gap: 12,
             }}
           >
-            <div>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Trạng thái sân</div>
-              <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Lịch đặt sân theo ngày</div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  background: '#fff',
-                  color: '#1a1a1a',
-                  fontSize: 12.5,
-                  fontFamily: 'inherit',
-                }}
-              />
+            <div>ID</div>
+            <div>Tên sân</div>
+            <div>Giá / giờ</div>
+            <div>Trạng thái</div>
+            <div>Thao tác</div>
+          </div>
+
+          {/* Table rows */}
+          {(courts ?? []).map((court) => {
+            const statusStyle = getStatusColor(court.status);
+            return (
               <div
+                key={court.courtId}
                 style={{
-                  fontSize: 12,
-                  color: '#888',
-                  background: '#fff',
-                  padding: '6px 12px',
-                  borderRadius: 8,
-                  border: '0.5px solid rgba(0,0,0,0.08)',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                  padding: '12px 16px',
+                  borderBottom: '0.5px solid rgba(0,0,0,0.06)',
+                  alignItems: 'center',
+                  fontSize: 13,
+                  gap: 12,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background = '#fafaf8';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background = 'transparent';
                 }}
               >
-                {displayDate}
-              </div>
-            </div>
-          </div>
-
-          {/* Controls row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              paddingLeft: 24,
-              paddingRight: 24,
-              marginBottom: 16,
-              flexWrap: 'wrap',
-            }}
-          >
-            {/* View toggle */}
-            <div
-              style={{
-                display: 'flex',
-                border: '0.5px solid rgba(0,0,0,0.12)',
-                borderRadius: 8,
-                overflow: 'hidden',
-                background: '#fff',
-              }}
-            >
-              {(['all', 'court'] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
+                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.courtId}</div>
+                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.name}</div>
+                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>
+                  {formatPrice(court.unitPrice)} VND
+                </div>
+                <div
                   style={{
-                    padding: '6px 16px',
-                    fontSize: 12.5,
-                    background: view === v ? '#378ADD' : 'transparent',
-                    color: view === v ? '#fff' : '#888',
-                    fontWeight: view === v ? 500 : 400,
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    transition: 'all 0.15s',
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    fontSize: 11,
+                    fontWeight: 500,
+                    backgroundColor: statusStyle.bg,
+                    color: statusStyle.color,
                   }}
                 >
-                  {v === 'all' ? 'Tất cả sân' : 'Theo sân'}
-                </button>
-              ))}
-            </div>
+                  {getStatusLabel(court.status)}
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => handleOpenModal(court)}
+                    title="Sửa"
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#185FA5',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 14,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      minHeight: '28px',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.target as HTMLButtonElement).style.background = '#134078';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.background = '#185FA5';
+                    }}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(court.courtId)}
+                    title="Xóa"
+                    disabled={isDeleting}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#A32D2D',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontSize: 14,
+                      cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      opacity: isDeleting ? 0.6 : 1,
+                      transition: 'background 0.15s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '32px',
+                      minHeight: '28px',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isDeleting) {
+                        (e.target as HTMLButtonElement).style.background = '#8B2323';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.target as HTMLButtonElement).style.background = '#A32D2D';
+                    }}
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-            {/* Legend */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginLeft: 'auto' }}>
-              {[
-                { color: '#C0DD97', label: 'Trống' },
-                { color: '#F7C1C1', label: 'Đã đặt' },
-              ].map(({ color, label }) => (
-                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888' }}>
-                  <span style={{ width: 12, height: 12, borderRadius: 3, background: color, display: 'inline-block' }} />
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
+      {/* Empty state */}
+      {!loading && (courts?.length ?? 0) === 0 && !error && (
+        <div
+          style={{
+            background: '#fff',
+            borderRadius: 12,
+            padding: '40px 16px',
+            textAlign: 'center',
+            border: '0.5px solid rgba(0,0,0,0.08)',
+            color: '#888',
+            fontSize: 13,
+          }}
+        >
+          Không có sân bóng nào
+        </div>
+      )}
 
-          {/* Main content */}
-          <div style={{ paddingLeft: 24, paddingRight: 24 }}>
-            {view === 'all' ? (
-              <AllCourtsView orders={orders} selectedSlot={selectedSlot} onSlotClick={handleSlotClick} />
-            ) : (
-              <CourtDetailView
-                orders={orders}
-                selectedCourt={selectedCourt}
-                selectedSlot={selectedSlot}
-                onCourtChange={handleCourtChange}
-                onSlotClick={handleSlotClick}
+      {/* Modal */}
+      {isModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={handleCloseModal}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: '24px',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>
+              {editingCourt ? 'Sửa sân bóng' : 'Thêm sân bóng mới'}
+            </h2>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
+                Tên sân
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Nhập tên sân"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  border: '0.5px solid rgba(0,0,0,0.12)',
+                  fontSize: 13,
+                  boxSizing: 'border-box',
+                }}
               />
-            )}
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
+                Số sân
+              </label>
+              <input
+                type="number"
+                value={formData.numOfIndex}
+                onChange={(e) => setFormData({ ...formData, numOfIndex: e.target.value })}
+                placeholder="Nhập số sân"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  border: '0.5px solid rgba(0,0,0,0.12)',
+                  fontSize: 13,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
+                Giá / giờ (VND)
+              </label>
+              <input
+                type="number"
+                value={formData.unitPrice}
+                onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
+                placeholder="Nhập giá"
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  border: '0.5px solid rgba(0,0,0,0.12)',
+                  fontSize: 13,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
+                Trạng thái
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as CourtStatus })}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: 6,
+                  border: '0.5px solid rgba(0,0,0,0.12)',
+                  fontSize: 13,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="Available">Có sẵn</option>
+                <option value="Unavailable">Không có sẵn</option>
+                <option value="Maintenance">Bảo trì</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleCloseModal}
+                disabled={isSubmitting}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#e0e0e0',
+                  color: '#1a1a1a',
+                  border: 'none',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.6 : 1,
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#185FA5',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  opacity: isSubmitting ? 0.6 : 1,
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting) {
+                    (e.target as HTMLButtonElement).style.background = '#134078';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.target as HTMLButtonElement).style.background = '#185FA5';
+                }}
+              >
+                {isSubmitting ? 'Đang lưu...' : editingCourt ? 'Cập nhật' : 'Thêm'}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
