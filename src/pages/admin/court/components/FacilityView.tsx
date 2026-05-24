@@ -100,12 +100,10 @@ export function FacilityView() {
     switch (status) {
       case 'Stock':
         return { bg: '#EAF3DE', color: '#3B6D11' };
-      case 'Out_of_stock':
-        return { bg: '#FCEBEB', color: '#A32D2D' };
-      case 'Maintenance':
+      case 'InUse':
+        return { bg: '#E8F4F8', color: '#185FA5' };
+      case 'Maintain':
         return { bg: '#FFF3E0', color: '#E67E22' };
-      case 'Damaged':
-        return { bg: '#FCE4EC', color: '#C2185B' };
       default:
         return { bg: '#E6F1FB', color: '#185FA5' };
     }
@@ -113,10 +111,9 @@ export function FacilityView() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      'Stock': 'Còn hàng',
-      'Out_of_stock': 'Hết hàng',
-      'Maintenance': 'Bảo trì',
-      'Damaged': 'Hỏng',
+      'Stock': 'Kho',
+      'InUse': 'Đang sử dụng',
+      'Maintain': 'Bảo trì',
     };
     return labels[status] || status;
   };
@@ -199,7 +196,7 @@ export function FacilityView() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 1fr',
+              gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 1fr 1fr',
               backgroundColor: '#f7f7f5',
               borderBottom: '0.5px solid rgba(0,0,0,0.08)',
               padding: '12px 16px',
@@ -212,6 +209,7 @@ export function FacilityView() {
             <div>ID</div>
             <div>Tên</div>
             <div>Mô tả</div>
+            <div>Danh mục</div>
             <div>Trạng thái</div>
             <div>Thao tác</div>
           </div>
@@ -219,12 +217,13 @@ export function FacilityView() {
           {/* Table rows */}
           {(facilities ?? []).map((facility) => {
             const statusStyle = getStatusColor(facility.status);
+            const categoryName = categories?.find(c => c.facilityCategoryId === facility.categoryName)?.name || facility.categoryName;
             return (
               <div
                 key={facility.facilityId}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 1fr',
+                  gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 1fr 1fr',
                   padding: '12px 16px',
                   borderBottom: '0.5px solid rgba(0,0,0,0.06)',
                   alignItems: 'center',
@@ -249,6 +248,9 @@ export function FacilityView() {
                   {facility.description.length > 50
                     ? `${facility.description.substring(0, 50)}...`
                     : facility.description}
+                </div>
+                <div style={{ color: '#1a1a1a' }}>
+                  {categoryName}
                 </div>
                 <div
                   style={{
@@ -375,6 +377,7 @@ export function FacilityView() {
                 value={formData.facilityName}
                 onChange={(e) => setFormData({ ...formData, facilityName: e.target.value })}
                 placeholder="Nhập tên cơ sở"
+                disabled={!!editingFacility}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -382,6 +385,8 @@ export function FacilityView() {
                   border: '0.5px solid rgba(0,0,0,0.12)',
                   fontSize: 13,
                   boxSizing: 'border-box',
+                  backgroundColor: editingFacility ? '#f5f5f5' : '#fff',
+                  cursor: editingFacility ? 'not-allowed' : 'text',
                 }}
               />
             </div>
@@ -394,6 +399,7 @@ export function FacilityView() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Nhập mô tả"
+                disabled={!!editingFacility}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -403,6 +409,8 @@ export function FacilityView() {
                   boxSizing: 'border-box',
                   minHeight: '80px',
                   fontFamily: 'inherit',
+                  backgroundColor: editingFacility ? '#f5f5f5' : '#fff',
+                  cursor: editingFacility ? 'not-allowed' : 'text',
                 }}
               />
             </div>
@@ -414,6 +422,7 @@ export function FacilityView() {
               <select
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                disabled={!!editingFacility}
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -421,6 +430,8 @@ export function FacilityView() {
                   border: '0.5px solid rgba(0,0,0,0.12)',
                   fontSize: 13,
                   boxSizing: 'border-box',
+                  backgroundColor: editingFacility ? '#f5f5f5' : '#fff',
+                  cursor: editingFacility ? 'not-allowed' : 'pointer',
                 }}
               >
                 <option value="">Chọn danh mục</option>
@@ -432,28 +443,29 @@ export function FacilityView() {
               </select>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
-                Trạng thái
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as FacilityStatus })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  fontSize: 13,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="Stock">Còn hàng</option>
-                <option value="Out_of_stock">Hết hàng</option>
-                <option value="Maintenance">Bảo trì</option>
-                <option value="Damaged">Hỏng</option>
-              </select>
-            </div>
+            {editingFacility && (
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
+                  Trạng thái
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as FacilityStatus })}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    border: '0.5px solid rgba(0,0,0,0.12)',
+                    fontSize: 13,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="Stock">Kho</option>
+                  <option value="InUse">Đang sử dụng</option>
+                  <option value="Maintain">Bảo trì</option>
+                </select>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button
