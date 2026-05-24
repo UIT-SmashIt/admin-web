@@ -151,7 +151,7 @@ const NAV_ITEMS: NavItem[] = [
     key: 'operations',
     label: 'Vận hành',
     children: [
-      { key: 'court-status', label: 'Trạng thái sân', path: '/trang-thai-san', icon: Icons.courtStatus },
+      { key: 'court-status', label: 'Trạng thái CSVC', path: '/trang-thai-san', icon: Icons.courtStatus },
       { key: 'inventory', label: 'Kho & dịch vụ', path: '/kho-dich-vu', icon: Icons.inventory },
       { key: 'staff', label: 'Quản lý nhân sự', path: '/nhan-su', icon: Icons.staff },
       { key: 'revenue', label: 'Doanh thu', path: '/doanh-thu', icon: Icons.revenue },

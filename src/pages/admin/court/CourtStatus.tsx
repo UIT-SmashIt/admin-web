@@ -1,13 +1,19 @@
 import { useState } from 'react';
 import { useFetchCourts, useAddCourt, useEditCourt, useRemoveCourt } from '../../../hooks/useCourt';
 import type { ICourt, CourtStatus } from '../../../types/court.type';
+import { FacilityView } from './components/FacilityView';
+import { FacilityCategoryView } from './components/FacilityCategoryView';
+import { FacilityCriterionView } from './components/FacilityCriterionView';
 
-export default function CourtStatus() {
+type TabType = 'courts' | 'facilities' | 'categories' | 'criteria';
+
+export default function FacilityStatus() {
   const { data: courts, isLoading: loading, error } = useFetchCourts();
   const addCourtMutation = useAddCourt();
   const editCourtMutation = useEditCourt();
   const removeCourtMutation = useRemoveCourt();
-  
+
+  const [activeTab, setActiveTab] = useState<TabType>('courts');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourt, setEditingCourt] = useState<ICourt | null>(null);
   const [formData, setFormData] = useState({
@@ -19,6 +25,13 @@ export default function CourtStatus() {
   
   const isSubmitting = addCourtMutation.isPending || editCourtMutation.isPending;
   const isDeleting = removeCourtMutation.isPending;
+
+  const tabs = [
+    { id: 'courts' as TabType, label: 'Sân' },
+    { id: 'facilities' as TabType, label: 'Cơ sở vật chất' },
+    { id: 'categories' as TabType, label: 'Danh mục' },
+    { id: 'criteria' as TabType, label: 'Tiêu chí' },
+  ];
 
   const handleOpenModal = (court?: ICourt) => {
     if (court) {
@@ -134,221 +147,318 @@ export default function CourtStatus() {
       }}
     >
       {/* Page header */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân bóng</div>
-          <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Danh sách các sân bóng</div>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Trạng thái cơ sở vật chất</div>
+            <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Quản lý sân và các cơ sở vật chất</div>
+          </div>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#185FA5',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            transition: 'background 0.15s',
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLButtonElement).style.background = '#134078';
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLButtonElement).style.background = '#185FA5';
-          }}
-        >
-          + Thêm sân mới
-        </button>
-      </div>
 
-      {/* Error message */}
-      {error && (
-        <div
-          style={{
-            backgroundColor: '#FCEBEB',
-            color: '#A32D2D',
-            padding: '12px 16px',
-            marginBottom: 16,
-            borderRadius: 8,
-            border: '0.5px solid #F4A9A9',
-            fontSize: 13,
-          }}
-        >
-          Lỗi khi tải danh sách sân
-        </div>
-      )}
-
-      {/* Loading indicator */}
-      {loading && (
+        {/* Tab Navigation */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '40px 0',
-            color: '#888',
-          }}
-        >
-          <div style={{ fontSize: 14 }}>Đang tải dữ liệu...</div>
-        </div>
-      )}
-
-      {/* Courts table */}
-      {!loading && (courts?.length ?? 0) > 0 && (
-        <div
-          style={{
+            gap: 0,
+            borderBottom: '1px solid rgba(0,0,0,0.08)',
             background: '#fff',
-            borderRadius: 12,
-            border: '0.5px solid rgba(0,0,0,0.08)',
-            overflow: 'hidden',
+            borderRadius: '12px 12px 0 0',
           }}
         >
-          {/* Table header */}
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: activeTab === tab.id ? '#fff' : 'transparent',
+                color: activeTab === tab.id ? '#185FA5' : '#888',
+                border: 'none',
+                borderBottom: activeTab === tab.id ? '2px solid #185FA5' : '1px solid rgba(0,0,0,0.08)',
+                fontSize: 13,
+                fontWeight: activeTab === tab.id ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== tab.id) {
+                  (e.target as HTMLButtonElement).style.color = '#1a1a1a';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab.id) {
+                  (e.target as HTMLButtonElement).style.color = '#888';
+                }
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div style={{ paddingTop: 16 }}>
+        {/* Courts Tab */}
+        {activeTab === 'courts' && (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
-              backgroundColor: '#f7f7f5',
-              borderBottom: '0.5px solid rgba(0,0,0,0.08)',
-              padding: '12px 16px',
-              fontSize: 12,
-              fontWeight: 500,
-              color: '#888',
-              gap: 12,
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px',
+              border: '0.5px solid rgba(0,0,0,0.08)',
             }}
           >
-            <div>ID</div>
-            <div>Tên sân</div>
-            <div>Giá / giờ</div>
-            <div>Trạng thái</div>
-            <div>Thao tác</div>
-          </div>
-
-          {/* Table rows */}
-          {(courts ?? []).map((court) => {
-            const statusStyle = getStatusColor(court.status);
-            return (
-              <div
-                key={court.courtId}
+            <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân bóng</div>
+              </div>
+              <button
+                onClick={() => handleOpenModal()}
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
-                  padding: '12px 16px',
-                  borderBottom: '0.5px solid rgba(0,0,0,0.06)',
-                  alignItems: 'center',
+                  padding: '8px 16px',
+                  backgroundColor: '#185FA5',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
                   fontSize: 13,
-                  gap: 12,
+                  fontWeight: 500,
+                  cursor: 'pointer',
                   transition: 'background 0.15s',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = '#fafaf8';
+                  (e.target as HTMLButtonElement).style.background = '#134078';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+                  (e.target as HTMLButtonElement).style.background = '#185FA5';
                 }}
               >
-                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.courtId}</div>
-                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.name}</div>
-                <div style={{ color: '#1a1a1a', fontWeight: 500 }}>
-                  {formatPrice(court.unitPrice)} VND
-                </div>
+                + Thêm sân mới
+              </button>
+            </div>
+
+            {/* Error message */}
+            {error && (
+              <div
+                style={{
+                  backgroundColor: '#FCEBEB',
+                  color: '#A32D2D',
+                  padding: '12px 16px',
+                  marginBottom: 16,
+                  borderRadius: 8,
+                  border: '0.5px solid #F4A9A9',
+                  fontSize: 13,
+                }}
+              >
+                Lỗi khi tải danh sách sân
+              </div>
+            )}
+
+            {/* Loading indicator */}
+            {loading && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 0',
+                  color: '#888',
+                }}
+              >
+                <div style={{ fontSize: 14 }}>Đang tải dữ liệu...</div>
+              </div>
+            )}
+
+            {/* Courts table */}
+            {!loading && (courts?.length ?? 0) > 0 && (
+              <div
+                style={{
+                  background: '#f7f7f5',
+                  borderRadius: 8,
+                  border: '0.5px solid rgba(0,0,0,0.08)',
+                  overflow: 'hidden',
+                  marginTop: 16,
+                }}
+              >
+                {/* Table header */}
                 <div
                   style={{
-                    display: 'inline-block',
-                    padding: '2px 8px',
-                    borderRadius: 20,
-                    fontSize: 11,
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                    backgroundColor: '#f7f7f5',
+                    borderBottom: '0.5px solid rgba(0,0,0,0.08)',
+                    padding: '12px 16px',
+                    fontSize: 12,
                     fontWeight: 500,
-                    backgroundColor: statusStyle.bg,
-                    color: statusStyle.color,
+                    color: '#888',
+                    gap: 12,
                   }}
                 >
-                  {getStatusLabel(court.status)}
+                  <div>ID</div>
+                  <div>Tên sân</div>
+                  <div>Giá / giờ</div>
+                  <div>Trạng thái</div>
+                  <div>Thao tác</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                  <button
-                    onClick={() => handleOpenModal(court)}
-                    title="Sửa"
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#185FA5',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 4,
-                      fontSize: 14,
-                      cursor: 'pointer',
-                      transition: 'background 0.15s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '32px',
-                      minHeight: '28px',
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.target as HTMLButtonElement).style.background = '#134078';
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLButtonElement).style.background = '#185FA5';
-                    }}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(court.courtId)}
-                    title="Xóa"
-                    disabled={isDeleting}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#A32D2D',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 4,
-                      fontSize: 14,
-                      cursor: isDeleting ? 'not-allowed' : 'pointer',
-                      opacity: isDeleting ? 0.6 : 1,
-                      transition: 'background 0.15s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      minWidth: '32px',
-                      minHeight: '28px',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isDeleting) {
-                        (e.target as HTMLButtonElement).style.background = '#8B2323';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.target as HTMLButtonElement).style.background = '#A32D2D';
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* Empty state */}
-      {!loading && (courts?.length ?? 0) === 0 && !error && (
-        <div
-          style={{
-            background: '#fff',
-            borderRadius: 12,
-            padding: '40px 16px',
-            textAlign: 'center',
-            border: '0.5px solid rgba(0,0,0,0.08)',
-            color: '#888',
-            fontSize: 13,
-          }}
-        >
-          Không có sân bóng nào
-        </div>
-      )}
+                {/* Table rows */}
+                {(courts ?? []).map((court) => {
+                  const statusStyle = getStatusColor(court.status);
+                  return (
+                    <div
+                      key={court.courtId}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                        padding: '12px 16px',
+                        borderBottom: '0.5px solid rgba(0,0,0,0.06)',
+                        alignItems: 'center',
+                        fontSize: 13,
+                        gap: 12,
+                        transition: 'background 0.15s',
+                        background: '#fff',
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.background = '#fafaf8';
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.background = '#fff';
+                      }}
+                    >
+                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.courtId}</div>
+                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.name}</div>
+                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>
+                        {formatPrice(court.unitPrice)} VND
+                      </div>
+                      <div
+                        style={{
+                          display: 'inline-block',
+                          padding: '2px 8px',
+                          borderRadius: 20,
+                          fontSize: 11,
+                          fontWeight: 500,
+                          backgroundColor: statusStyle.bg,
+                          color: statusStyle.color,
+                        }}
+                      >
+                        {getStatusLabel(court.status)}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => handleOpenModal(court)}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#E8F4F8',
+                            color: '#185FA5',
+                            border: 'none',
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'background 0.15s',
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.target as HTMLButtonElement).style.background = '#D1E8F2';
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.target as HTMLButtonElement).style.background = '#E8F4F8';
+                          }}
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => handleDelete(court.courtId)}
+                          disabled={isDeleting}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#FCEBEB',
+                            color: '#A32D2D',
+                            border: 'none',
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            cursor: isDeleting ? 'not-allowed' : 'pointer',
+                            transition: 'background 0.15s',
+                            opacity: isDeleting ? 0.6 : 1,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!isDeleting) (e.target as HTMLButtonElement).style.background = '#F4A9A9';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!isDeleting) (e.target as HTMLButtonElement).style.background = '#FCEBEB';
+                          }}
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!loading && (courts?.length ?? 0) === 0 && !error && (
+              <div
+                style={{
+                  background: '#f7f7f5',
+                  borderRadius: 8,
+                  padding: '40px 16px',
+                  textAlign: 'center',
+                  border: '0.5px solid rgba(0,0,0,0.08)',
+                  color: '#888',
+                  fontSize: 13,
+                  marginTop: 16,
+                }}
+              >
+                Không có sân bóng nào
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Facilities Tab */}
+        {activeTab === 'facilities' && (
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px',
+              border: '0.5px solid rgba(0,0,0,0.08)',
+            }}
+          >
+            <FacilityView />
+          </div>
+        )}
+
+        {/* Categories Tab */}
+        {activeTab === 'categories' && (
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px',
+              border: '0.5px solid rgba(0,0,0,0.08)',
+            }}
+          >
+            <FacilityCategoryView />
+          </div>
+        )}
+
+        {/* Criteria Tab */}
+        {activeTab === 'criteria' && (
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: '20px',
+              border: '0.5px solid rgba(0,0,0,0.08)',
+            }}
+          >
+            <FacilityCriterionView />
+          </div>
+        )}
+      </div>
 
       {/* Modal */}
       {isModalOpen && (
