@@ -1,5 +1,12 @@
 import { useState, useMemo } from 'react';
-import { COURTS, PLAY_LEVELS, fmt } from '../pages/Lịch đặt/LichDatTypes';
+import { useFetchCommunityPosts, useAddCommunityPost, useEditCommunityPost, useRemoveCommunityPost } from '../hooks/useTogether';
+import { useFetchCourts } from '../hooks/useCourt';
+import type { ICommunityPost } from '../types/together.type';
+
+const fmt = (n: number) => n.toLocaleString('vi-VN');
+const PLAY_LEVELS = ['Mọi trình độ', 'Mới bắt đầu', 'Trung bình', 'Khá', 'Chuyên nghiệp'];
+
+type ModalMode = 'add' | 'edit' | 'view' | null;
 
 const globalStyles = `
   html, body {
@@ -10,61 +17,8 @@ const globalStyles = `
   }
 `;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface CommunityPost {
-  id: number;
-  authorName: string;
-  authorCode: string;
-  phone: string;
-  courtId: number;
-  date: string;
-  startTime: string;
-  endTime: string;
-  maxPlayers: number;
-  currentPlayers: number;
-  level: string;
-  caption: string;
-  hashtags: string[];
-  postedAt: string;
-  isFull: boolean;
-  courtFee: number;
-}
-
-type ModalMode = 'add' | 'edit' | 'view' | null;
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const INITIAL_POSTS: CommunityPost[] = [
-  {
-    id: 1, authorName: 'Trần Thị Bình', authorCode: 'TTB02', phone: '0912345678',
-    courtId: 2, date: '20/04/2026', startTime: '7:00', endTime: '9:00',
-    maxPlayers: 4, currentPlayers: 2, level: 'Trung bình',
-    caption: '🏸 Tìm 2 người chơi cầu lông sáng 20/04 tại Sân 2, 7:00–9:00. Trình độ trung bình. Ai quan tâm nhắn tin nhé!',
-    hashtags: ['#cầulông', '#tìmđồng_đội', '#badminton'],
-    postedAt: '16/04/2026 09:15', isFull: false, courtFee: 320000,
-  },
-  {
-    id: 2, authorName: 'Phạm Hương', authorCode: 'PH04', phone: '0934567890',
-    courtId: 1, date: '22/04/2026', startTime: '18:00', endTime: '20:00',
-    maxPlayers: 6, currentPlayers: 6, level: 'Khá',
-    caption: '🏸 Đủ người rồi nhé! Sân 1, 22/04, 18:00–20:00. Hẹn gặp trên sân 💪 Thi đấu nghiêm túc, ai đến đúng giờ nha!',
-    hashtags: ['#cầulông', '#sportsHCM', '#badminton'],
-    postedAt: '14/04/2026 20:10', isFull: true, courtFee: 160000,
-  },
-  {
-    id: 3, authorName: 'Đỗ Minh Khoa', authorCode: 'DMK07', phone: '0967123456',
-    courtId: 3, date: '23/04/2026', startTime: '14:00', endTime: '16:00',
-    maxPlayers: 4, currentPlayers: 1, level: 'Mọi trình độ',
-    caption: '🏸 Mình đặt Sân 3 chiều 23/04, 14:00–16:00. Cần thêm 3 người. Mọi trình độ đều ok, vui vẻ là chính! 😄',
-    hashtags: ['#cầulông', '#tìmđồng_đội', '#sânxịn'],
-    postedAt: '16/04/2026 13:20', isFull: false, courtFee: 160000,
-  },
-];
-
-const ALL_HASHTAGS = ['#cầulông', '#tìmđồng_đội', '#badminton', '#sportsHCM', '#sânxịn', '#mọitrìnhđộ'];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 function initials(name: string) {
   return name.split(' ').slice(-2).map(w => w[0]).join('').toUpperCase();
@@ -74,15 +28,15 @@ function authorColor(code: string) { return AUTHOR_COLORS[code.charCodeAt(0) % A
 
 // ─── Post Form Modal ──────────────────────────────────────────────────────────
 
-function PostModal({ mode, post, onSave, onClose }: {
-  mode: ModalMode; post: CommunityPost | null;
-  onSave: (p: CommunityPost) => void; onClose: () => void;
+function PostModal({ mode, post, courts, onSave, onClose }: {
+  mode: ModalMode; post: ICommunityPost | null; courts: any[];
+  onSave: (p: ICommunityPost) => void; onClose: () => void;
 }) {
   const [form, setForm] = useState({
     authorName: post?.authorName ?? '',
     authorCode: post?.authorCode ?? '',
     phone: post?.phone ?? '',
-    courtId: post?.courtId ?? 1,
+    courtId: post?.courtId ?? (courts[0]?.courtId ?? 1),
     date: post?.date ?? '',
     startTime: post?.startTime ?? '',
     endTime: post?.endTime ?? '',
@@ -91,7 +45,6 @@ function PostModal({ mode, post, onSave, onClose }: {
     level: post?.level ?? PLAY_LEVELS[0],
     caption: post?.caption ?? '',
     hashtags: post?.hashtags ?? [] as string[],
-    courtFee: post?.courtFee ?? 160000,
   });
 
   const set = (k: keyof typeof form, v: unknown) => setForm(f => ({ ...f, [k]: v }));
@@ -100,9 +53,10 @@ function PostModal({ mode, post, onSave, onClose }: {
     setForm(f => ({ ...f, hashtags: f.hashtags.includes(tag) ? f.hashtags.filter(t => t !== tag) : [...f.hashtags, tag] }));
 
   const spotsLeft = form.maxPlayers - form.currentPlayers;
+  const ALL_HASHTAGS = ['#cầulông', '#tìmđồng_đội', '#badminton', '#sportsHCM', '#sânxịn', '#mọitrìnhđộ'];
 
   const buildCaption = () => {
-    const court = COURTS.find(c => c.id === form.courtId);
+    const court = courts.find(c => c.courtId === form.courtId);
     return `🏸 Tìm ${spotsLeft} người chơi cầu lông ngày ${form.date} tại ${court?.name}, ${form.startTime}–${form.endTime}.\nTrình độ: ${form.level}. Hiện có ${form.currentPlayers}/${form.maxPlayers} người.\nAi quan tâm nhắn tin nhé! 💪`;
   };
 
@@ -113,6 +67,9 @@ function PostModal({ mode, post, onSave, onClose }: {
       ...form,
       isFull: form.currentPlayers >= form.maxPlayers,
       postedAt: post?.postedAt ?? new Date().toLocaleString('vi-VN'),
+      courtFee: 160000,
+      createdAt: post?.createdAt ?? new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     onClose();
   };
@@ -152,7 +109,7 @@ function PostModal({ mode, post, onSave, onClose }: {
             <div>
               <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>CHỌN SÂN</label>
               <select value={form.courtId} onChange={e => set('courtId', +e.target.value)} style={{ ...inp, appearance: 'none' as const }}>
-                {COURTS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {(window as any).__courts?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
@@ -274,11 +231,12 @@ function PostModal({ mode, post, onSave, onClose }: {
 
 // ─── Post Card ────────────────────────────────────────────────────────────────
 
-function PostCard({ post, onEdit, onDelete, onJoin }: {
-  post: CommunityPost;
+function PostCard({ post, courts, onEdit, onDelete, onJoin }: {
+  post: ICommunityPost;
+  courts: any[];
   onEdit: () => void; onDelete: () => void; onJoin: () => void;
 }) {
-  const court = COURTS.find(c => c.id === post.courtId);
+  const court = courts.find(c => c.courtId === post.courtId);
   const spotsLeft = post.maxPlayers - post.currentPlayers;
   const fillPct = (post.currentPlayers / post.maxPlayers) * 100;
   const color = authorColor(post.authorCode);
@@ -398,9 +356,14 @@ function PostCard({ post, onEdit, onDelete, onJoin }: {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CongDong() {
-  const [posts, setPosts] = useState<CommunityPost[]>(INITIAL_POSTS);
-  const [modal, setModal] = useState<{ mode: ModalMode; post: CommunityPost | null }>({ mode: null, post: null });
-  const [deleteTarget, setDeleteTarget] = useState<CommunityPost | null>(null);
+  const { data: posts = [] } = useFetchCommunityPosts();
+  const { data: courts = [] } = useFetchCourts();
+  const { mutate: addPost } = useAddCommunityPost();
+  const { mutate: editPost } = useEditCommunityPost();
+  const { mutate: deletePost } = useRemoveCommunityPost();
+  
+  const [modal, setModal] = useState<{ mode: ModalMode; post: ICommunityPost | null }>({ mode: null, post: null });
+  const [deleteTarget, setDeleteTarget] = useState<ICommunityPost | null>(null);
   const [search, setSearch] = useState('');
   const [filterFull, setFilterFull] = useState<'all' | 'open' | 'full'>('all');
   const [filterLevel, setFilterLevel] = useState('Tất cả');
@@ -412,20 +375,78 @@ export default function CongDong() {
     const q = search.toLowerCase();
     return posts.filter(p =>
       (p.caption.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q) ||
-       COURTS.find(c => c.id === p.courtId)?.name.toLowerCase().includes(q) || false) &&
+       courts.find(c => c.courtId === p.courtId)?.name.toLowerCase().includes(q) || false) &&
       (filterFull === 'all' || (filterFull === 'open' && !p.isFull) || (filterFull === 'full' && p.isFull)) &&
       (filterLevel === 'Tất cả' || p.level === filterLevel)
     ).sort((a, b) => a.postedAt < b.postedAt ? 1 : -1);
-  }, [posts, search, filterFull, filterLevel]);
+  }, [posts, search, filterFull, filterLevel, courts]);
 
-  const handleSave = (p: CommunityPost) => setPosts(prev => prev.some(x => x.id === p.id) ? prev.map(x => x.id === p.id ? p : x) : [p, ...prev]);
-  const handleDelete = (id: number) => setPosts(prev => prev.filter(x => x.id !== id));
+  const handleSave = (p: ICommunityPost) => {
+    if (modal.mode === 'add') {
+      addPost({
+        authorName: p.authorName,
+        authorCode: p.authorCode,
+        phone: p.phone,
+        courtId: p.courtId,
+        date: p.date,
+        startTime: p.startTime,
+        endTime: p.endTime,
+        maxPlayers: p.maxPlayers,
+        level: p.level,
+        caption: p.caption,
+        hashtags: p.hashtags,
+      }, {
+        onSuccess: () => {
+          showToast('✓ Đã đăng bài thành công!');
+          setModal({ mode: null, post: null });
+        },
+        onError: () => {
+          showToast('✗ Lỗi khi đăng bài');
+        },
+      });
+    } else if (modal.mode === 'edit' && p.id) {
+      editPost({
+        id: p.id,
+        data: {
+          authorName: p.authorName,
+          authorCode: p.authorCode,
+          phone: p.phone,
+          courtId: p.courtId,
+          date: p.date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          maxPlayers: p.maxPlayers,
+          level: p.level,
+          caption: p.caption,
+          hashtags: p.hashtags,
+        },
+      }, {
+        onSuccess: () => {
+          showToast('✓ Đã cập nhật bài đăng!');
+          setModal({ mode: null, post: null });
+        },
+        onError: () => {
+          showToast('✗ Lỗi khi cập nhật');
+        },
+      });
+    }
+  };
+
+  const handleDelete = (id: number) => {
+    deletePost(id, {
+      onSuccess: () => {
+        showToast('✓ Đã xóa bài đăng');
+        setDeleteTarget(null);
+      },
+      onError: () => {
+        showToast('✗ Lỗi khi xóa');
+      },
+    });
+  };
+
   const handleJoin = (id: number) => {
-    setPosts(prev => prev.map(p => {
-      if (p.id !== id || p.isFull) return p;
-      const next = p.currentPlayers + 1;
-      return { ...p, currentPlayers: next, isFull: next >= p.maxPlayers };
-    }));
+    // TODO: Integrate with backend API to join/register for the community post
+    console.log('Joining post:', id);
     showToast('🎉 Đã đăng ký tham gia! Chủ bài sẽ liên hệ với bạn.');
   };
 
@@ -444,7 +465,7 @@ export default function CongDong() {
       )}
 
       {modal.mode && (
-        <PostModal mode={modal.mode} post={modal.post} onSave={handleSave} onClose={() => setModal({ mode: null, post: null })} />
+        <PostModal mode={modal.mode} post={modal.post} courts={courts} onSave={handleSave} onClose={() => setModal({ mode: null, post: null })} />
       )}
       {deleteTarget && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setDeleteTarget(null)}>
@@ -525,7 +546,7 @@ export default function CongDong() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
           {filtered.map(p => (
-            <PostCard key={p.id} post={p}
+            <PostCard key={p.id} post={p} courts={courts}
               onEdit={() => setModal({ mode: 'edit', post: p })}
               onDelete={() => setDeleteTarget(p)}
               onJoin={() => handleJoin(p.id)}

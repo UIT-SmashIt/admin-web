@@ -5,7 +5,9 @@ import type {ImportStatus} from "../const/importStatus.const.ts";
 export interface IProduct {
   productId: number;
   productName: string;
-  capacity: string;
+  status?: ProductStatus;
+  quantity: number;
+  minQuantity?: number;
   categoryId: number;
   categoryName: string;
   details: IProductDetail[];
@@ -17,9 +19,7 @@ export interface IProductDetail {
   unit: string;
   unitPrice: number;
   saleType: SaleType;
-  quantity: number;
-  minQuantity?: number;
-  status?: ProductStatus;
+  capacity: string;
 }
 
 export interface IProductImport {

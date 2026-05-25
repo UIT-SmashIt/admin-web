@@ -1,6 +1,4 @@
 import { Route } from '@tanstack/react-router'
-import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
 import CourtStatus from '../pages/admin/court/CourtStatus.tsx'
 import KhoDichVu from '../pages/admin/inventory/InventoryPage.tsx'
 import Nhanvien from '../pages/admin/schedule/Staff.tsx'
@@ -8,11 +6,7 @@ import DoanhThu from '../pages/Revenue'
 import KhachHang from '../pages/Customer'
 import Voucher from '../pages/Voucher'
 import BaoTri from '../pages/admin/maintenance/MaintenancePage.tsx'
-import LichDat from '../pages/Lịch đặt/Lichdat'
-import DatLichLinhHoat from '../pages/Lịch đặt/DatLichLinhHoat'
-import DatLichCongDong from '../pages/Lịch đặt/DatLichCongDong'
-import type { Booking } from '../pages/Lịch đặt/LichDatTypes'
-import { INITIAL_BOOKINGS } from '../pages/Lịch đặt/LichDatTypes'
+import BookingPage from '../pages/admin/booking/BookingPage'
 import CongDong from '../pages/Community'
 import rootRoute from './root'
 
@@ -35,40 +29,8 @@ function PlaceholderPage({ title }: { title: string }) {
   )
 }
 
-function LichDatWrapper() {
-  const navigate = useNavigate()
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS)
-
-  return (
-    <LichDat
-      onNavigateCommunity={() => navigate({ to: '/dat-lich-cong-dong' })}
-      onNavigateSingle={() => navigate({ to: '/dat-lich-linh-hoat' })}
-      bookings={bookings}
-      setBookings={setBookings}
-    />
-  )
-}
-
-function DatLichLinhHoatWrapper() {
-  const navigate = useNavigate()
-
-  return (
-    <DatLichLinhHoat
-      onBack={() => navigate({ to: '/lich-dat' })}
-      onSave={() => navigate({ to: '/lich-dat' })}
-    />
-  )
-}
-
-function DatLichCongDongWrapper() {
-  const navigate = useNavigate()
-
-  return (
-    <DatLichCongDong
-      onBack={() => navigate({ to: '/lich-dat' })}
-      onSave={() => navigate({ to: '/lich-dat' })}
-    />
-  )
+function BookingPageWrapper() {
+  return <BookingPage />
 }
 
 const placeholderRoutes = [
@@ -110,17 +72,7 @@ const placeholderRoutes = [
   new Route({
     getParentRoute: () => rootRoute,
     path: '/lich-dat',
-    component: LichDatWrapper,
-  }),
-  new Route({
-    getParentRoute: () => rootRoute,
-    path: '/dat-lich-linh-hoat',
-    component: DatLichLinhHoatWrapper,
-  }),
-  new Route({
-    getParentRoute: () => rootRoute,
-    path: '/dat-lich-cong-dong',
-    component: DatLichCongDongWrapper,
+    component: BookingPageWrapper,
   }),
   new Route({
     getParentRoute: () => rootRoute,
