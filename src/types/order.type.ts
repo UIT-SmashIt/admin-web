@@ -1,7 +1,7 @@
 // Order / Booking Types
 
-export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
-export type PaymentMethod = 'CASH' | 'QR' | 'BANK';
+export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'WaitingForPayment';
+export type PaymentMethod = 'CASH' | 'QR';
 export type PaymentStatus = 'unpaid' | 'deposited' | 'paid' | 'cancelled';
 export type BookingType = 'single' | 'community';
 
@@ -14,7 +14,7 @@ export interface IOrderService {
 }
 
 export interface IOrder {
-  id: number;
+  courtOrderId: number;
   customerName: string;
   customerCode: string;
   phone: string;
@@ -69,3 +69,51 @@ export interface PaymentCalculateResponse {
   changeAmount: number;
   promotionDescription: string;
 }
+
+// Admin Order API Types
+export interface AdminOrder {
+  courtOrderId: number;
+  orderDate: string;
+  startHour: string;
+  endHour: string;
+  status: OrderStatus;
+  adminId: number;
+  customerId: number;
+  guestName: string;
+  guestEmail: string;
+  guestPhoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+  courtIds: number[];
+}
+
+export interface AdminOrderCreatePayload {
+  orderDate: string;
+  startHour: string;
+  endHour: string;
+  courtIds: number[];
+}
+
+export interface AdminOrderUpdateService {
+  productId: number;
+  productCategoryId: number;
+  quantity: number;
+}
+
+export interface AdminOrderUpdatePayload {
+  services: AdminOrderUpdateService[];
+}
+
+export interface CourtScheduleSlot {
+  startHour: string;
+  endHour: string;
+  courtId: number;
+  orderDate: string;
+  courtOrderId: number;
+}
+
+export interface CourtScheduleRequest {
+  orderDate: string;
+}
+
+export type CourtScheduleResponse = Record<string, CourtScheduleSlot[]>;

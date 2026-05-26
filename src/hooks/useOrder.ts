@@ -8,12 +8,22 @@ import {
   fetchOrders,
   invoiceOrder,
   removeOrder,
+  fetchAdminOrders,
+  fetchAdminOrderById,
+  createAdminOrder,
+  updateAdminOrder,
+  fetchCourtSchedule,
 } from '../api/order.api.ts';
 import type {
   OrderAddPayload,
   OrderEditPayload,
   PaymentCalculatePayload,
   PaymentCalculateResponse,
+  AdminOrder,
+  AdminOrderCreatePayload,
+  AdminOrderUpdatePayload,
+  CourtScheduleRequest,
+  CourtScheduleResponse,
 } from '../types/order.type.ts';
 
 export const useFetchOrders = () => {
@@ -76,10 +86,14 @@ export const useCalculatePayment = () => {
 export const useInvoiceOrder = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
+  return useMutation<
+    void,
+    Error,
+    { id: number; payload: PaymentCalculatePayload }
+  >({
     mutationFn: invoiceOrder,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
     },
   });
 };
@@ -88,5 +102,50 @@ export const useFetchOrderHistory = () => {
   return useQuery({
     queryKey: ['orderHistory'],
     queryFn: fetchOrderHistory,
+  });
+};
+
+// ===== Admin Order Hooks =====
+export const useFetchAdminOrders = () => {
+  return useQuery({
+    queryKey: ['adminOrders'],
+    queryFn: fetchAdminOrders,
+  });
+};
+
+export const useFetchAdminOrderById = (id: number) => {
+  return useQuery({
+    queryKey: ['adminOrder', id],
+    queryFn: () => fetchAdminOrderById(id),
+  });
+};
+
+export const useCreateAdminOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<AdminOrder, Error, AdminOrderCreatePayload>({
+    mutationFn: createAdminOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+    },
+  });
+};
+
+export const useUpdateAdminOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { id: number; payload: AdminOrderUpdatePayload }>(
+    {
+      mutationFn: updateAdminOrder,
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+      },
+    }
+  );
+};
+
+export const useFetchCourtSchedule = () => {
+  return useMutation<CourtScheduleResponse, Error, CourtScheduleRequest>({
+    mutationFn: fetchCourtSchedule,
   });
 };

@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Spin } from 'antd';
-import { useFetchOrders, useAddOrder, useRemoveOrder } from '../../../hooks/useOrder';
+import { useFetchAdminOrders, useCreateAdminOrder, useUpdateAdminOrder, useInvoiceOrder } from '../../../hooks/useOrder';
 import { useFetchCourts } from '../../../hooks/useCourt';
 import { BookingForm } from './components/BookingForm';
 import { BookingList } from './components/BookingList';
+import { OrderDetailsView } from './components/OrderDetailsView';
+import type { AdminOrder } from '../../../types/order.type';
 
-type View = 'list' | 'add-booking';
+type View = 'list' | 'add-booking' | 'view-order' | 'edit-order';
 
 export default function BookingPage() {
-  const { data: orders = [], isLoading: ordersLoading } = useFetchOrders();
+  const { data: orders = [], isLoading: ordersLoading } = useFetchAdminOrders();
   const { data: courts = [], isLoading: courtsLoading } = useFetchCourts();
-  const { mutate: addOrder, isPending: isAddingOrder } = useAddOrder();
-  const { mutate: removeOrder } = useRemoveOrder();
+  const { mutate: createOrder, isPending: isCreatingOrder } = useCreateAdminOrder();
+  const { mutate: updateOrder, isPending: isUpdatingOrder } = useUpdateAdminOrder();
+  const { mutate: invoiceOrder } = useInvoiceOrder();
 
   const [view, setView] = useState<View>('list');
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -23,9 +27,10 @@ export default function BookingPage() {
 
   const handleAddOrder = async (data: any) => {
     return new Promise<void>((resolve, reject) => {
-      addOrder(data, {
+      createOrder(data, {
         onSuccess: () => {
           showToast('✓ Đặt lịch thành công!');
+          setView('list');
           resolve();
         },
         onError: (error: any) => {
@@ -36,20 +41,53 @@ export default function BookingPage() {
     });
   };
 
-  const handleDeleteOrder = (id: number) => {
-    if (window.confirm('Xác nhận xóa đơn đặt lịch này?')) {
-      removeOrder(id, {
-        onSuccess: () => {
-          showToast('✓ Đã xóa đơn đặt lịch');
-        },
-        onError: () => {
-          showToast('✗ Lỗi khi xóa');
-        },
-      });
-    }
+  const handleViewOrder = (order: AdminOrder) => {
+    setSelectedOrder(order);
+    setView('view-order');
   };
 
-  const isLoading = ordersLoading || courtsLoading || isAddingOrder;
+  const handleEditOrder = (order: AdminOrder) => {
+    setSelectedOrder(order);
+    setView('edit-order');
+  };
+
+  const handleUpdateOrder = async (data: any) => {
+    if (!selectedOrder) return;
+    return new Promise<void>((resolve, reject) => {
+      updateOrder(
+        { id: selectedOrder.courtOrderId, payload: data },
+        {
+          onSuccess: () => {
+            showToast('✓ Cập nhật đơn thành công!');
+            setView('list');
+            setSelectedOrder(null);
+            resolve();
+          },
+          onError: (error: any) => {
+            showToast('✗ Lỗi: ' + (error?.message || 'Không thể cập nhật'));
+            reject(error);
+          },
+        }
+      );
+    });
+  };
+
+  const handleInvoice = (orderId: number, payload: any) => {
+    invoiceOrder(
+      { id: orderId, payload },
+      {
+        onSuccess: () => {
+          showToast('✓ Xuất hóa đơn thành công!');
+          setView('list');
+        },
+        onError: (error: any) => {
+          showToast('✗ Lỗi: ' + (error?.message || 'Không thể xuất hóa đơn'));
+        },
+      }
+    );
+  };
+
+  const isLoading = ordersLoading || courtsLoading || isCreatingOrder || isUpdatingOrder;
 
   return (
     <>
@@ -93,20 +131,46 @@ export default function BookingPage() {
             <BookingList
               orders={orders}
               courts={courts}
-              onView={(id) => console.log('View:', id)}
-              onEdit={(id) => console.log('Edit:', id)}
-              onDelete={handleDeleteOrder}
+              onView={handleViewOrder}
+              onEdit={handleEditOrder}
               loading={ordersLoading}
             />
           </Spin>
         </div>
       )}
 
+      {view === 'view-order' && selectedOrder && (
+        <OrderDetailsView
+          order={selectedOrder}
+          courts={courts}
+          onBack={() => {
+            setView('list');
+            setSelectedOrder(null);
+          }}
+          onEdit={() => handleEditOrder(selectedOrder)}
+          onInvoice={handleInvoice}
+          loading={isLoading}
+        />
+      )}
+
       {view === 'add-booking' && (
         <BookingForm
           onBack={() => setView('list')}
           onSubmit={handleAddOrder}
-          loading={isAddingOrder}
+          loading={isCreatingOrder}
+        />
+      )}
+
+      {view === 'edit-order' && selectedOrder && (
+        <BookingForm
+          order={selectedOrder}
+          onBack={() => {
+            setView('list');
+            setSelectedOrder(null);
+          }}
+          onSubmit={handleUpdateOrder}
+          loading={isUpdatingOrder}
+          isEditing={true}
         />
       )}
     </>
