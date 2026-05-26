@@ -84,10 +84,10 @@ export default function FacilityStatus() {
           id: editingCourt.courtId as number,
           data: payload,
         });
-        alert('Cập nhật sân bóng thành công');
+        alert('Cập nhật sân  thành công');
       } else {
         await addCourtMutation.mutateAsync(payload);
-        alert('Thêm sân bóng thành công');
+        alert('Thêm sân  thành công');
       }
       handleCloseModal();
     } catch (err) {
@@ -97,11 +97,11 @@ export default function FacilityStatus() {
   };
 
   const handleDelete = async (courtId: string | number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa sân bóng này?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa sân  này?')) return;
 
     try {
       await removeCourtMutation.mutateAsync(courtId as number);
-      alert('Xóa sân bóng thành công');
+      alert('Xóa sân  thành công');
     } catch (err) {
       alert('Có lỗi xảy ra khi xóa');
       console.error(err);
@@ -211,7 +211,7 @@ export default function FacilityStatus() {
           >
             <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân bóng</div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân </div>
               </div>
               <button
                 onClick={() => handleOpenModal()}
@@ -411,7 +411,7 @@ export default function FacilityStatus() {
                   marginTop: 16,
                 }}
               >
-                Không có sân bóng nào
+                Không có sân  nào
               </div>
             )}
           </div>
@@ -489,7 +489,7 @@ export default function FacilityStatus() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>
-              {editingCourt ? 'Sửa sân bóng' : 'Thêm sân bóng mới'}
+              {editingCourt ? 'Sửa sân ' : 'Thêm sân  mới'}
             </h2>
 
             <div style={{ marginBottom: 16 }}>
