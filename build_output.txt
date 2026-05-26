@@ -1,0 +1,37 @@
+﻿
+> admin-web@0.0.0 build
+> tsc -b && vite build
+
+src/hooks/useProductOrder.ts(20,9): error TS6133: 'queryClient' is declared but its value is never read.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(15,48): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(40,90): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(51,91): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(55,134): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(55,208): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(57,86): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/AdjustQtyModal.tsx(57,126): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/ImportView.tsx(59,29): error TS2339: Property 'capacity' does not exist on type 'IProduct'.
+src/pages/admin/inventory/components/ImportView.tsx(59,106): error TS2339: Property 'capacity' does not exist on type 'IProduct'.
+src/pages/admin/inventory/components/ImportView.tsx(79,95): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/ImportView.tsx(94,93): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/ImportView.tsx(94,146): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/ImportView.tsx(109,43): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/ProductDetailEditor.tsx(30,7): error TS2322: Type 'IProductDetail | { productDetailId: number; unit: string; unitPrice: number; saleType: "Retail" | "Wholesale"; quantity: number; barcode: string; }' is not assignable to type 'IProductDetail'.
+  Object literal may only specify known properties, and 'quantity' does not exist in type 'IProductDetail'.
+src/pages/admin/inventory/components/ProductDetailEditor.tsx(30,7): error TS2353: Object literal may only specify known properties, and 'quantity' does not exist in type 'IProductDetail'.
+src/pages/admin/inventory/components/ProductDetailEditor.tsx(203,50): error TS2339: Property 'capacity' does not exist on type 'IProduct'.
+src/pages/admin/inventory/components/ProductDetailEditor.tsx(206,82): error TS2345: Argument of type '{ productDetailId: number; barcode?: string | undefined; unit: string; unitPrice: number; saleType: SaleType; capacity: string; }[] | { productDetailId: number; unit: string; unitPrice: number; saleType: "Retail"; quantity: number; barcode: string; }[]' is not assignable to parameter of type 'IProductDetail[] | (() => IProductDetail[])'.
+  Type '{ productDetailId: number; unit: string; unitPrice: number; saleType: "Retail"; quantity: number; barcode: string; }[]' is not assignable to type 'IProductDetail[] | (() => IProductDetail[])'.
+    Type '{ productDetailId: number; unit: string; unitPrice: number; saleType: "Retail"; quantity: number; barcode: string; }[]' is not assignable to type 'IProductDetail[]'.
+      Object literal may only specify known properties, and 'quantity' does not exist in type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(32,84): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(33,65): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(122,33): error TS2339: Property 'capacity' does not exist on type 'IProduct'.
+src/pages/admin/inventory/components/StockListView.tsx(122,110): error TS2339: Property 'capacity' does not exist on type 'IProduct'.
+src/pages/admin/inventory/components/StockListView.tsx(127,64): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(127,93): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(127,153): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/admin/inventory/components/StockListView.tsx(128,26): error TS2339: Property 'quantity' does not exist on type 'IProductDetail'.
+src/pages/Sale/Sale.tsx(2,25): error TS6196: 'IProductCategory' is declared but never used.
+src/routes.ts(1,10): error TS6133: 'RootRoute' is declared but its value is never read.
+src/utils/serviceProductMapping.ts(2,34): error TS2307: Cannot find module '../pages/Lß╗ïch ─æß║╖t/LichDatTypes' or its corresponding type declarations.
