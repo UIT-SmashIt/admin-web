@@ -5,7 +5,7 @@ interface ServiceItem {
   name: string;
   unit: string;
   price: number;
-  category: string;
+  category: number;
 }
 
 interface SelectedService {

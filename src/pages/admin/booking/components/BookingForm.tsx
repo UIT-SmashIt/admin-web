@@ -13,7 +13,7 @@ interface SelectedService {
     name: string;
     unit: string;
     price: number;
-    category: string;
+    category: number;
   };
   qty: number;
 }
@@ -83,7 +83,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
       const orderData = {
         services: services.map(s => ({
           productId: s.service.id,
-          productCategoryId: parseInt(s.service.category),
+          productCategoryId: s.service.category,
           quantity: s.qty,
         })),
       };
@@ -106,7 +106,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
       if (services.length > 0) {
         orderData.productDetails = services.map(s => ({
           productId: s.service.id,
-          productCategoryId: parseInt(s.service.category),
+          productCategoryId: s.service.category,
           quantity: s.qty,
         }));
       }
@@ -131,7 +131,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {showServices && (
-        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} products={products.filter(p => p.categoryId !== 1)} />
+        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} products={products} />
       )}
       {showInvoice && (
         <InvoiceModal
@@ -211,16 +211,16 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
           <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 6, fontWeight: 600 }}>SẢN PHẨM & DỊCH VỤ</label>
           <button
             onClick={() => setShowServices(true)}
-            disabled={products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading}
+            disabled={loading || productsLoading}
             style={{
               width: '100%', padding: '11px', borderRadius: 9,
               border: '1.5px solid #378ADD', background: '#EFF6FF',
               color: '#1D4ED8', fontWeight: 600, fontSize: 13.5,
-              cursor: products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+              cursor: (loading || productsLoading) ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              opacity: products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading ? 0.5 : 1,
+              opacity: (loading || productsLoading) ? 0.5 : 1,
             }}
-            title={productsLoading ? 'Đang tải...' : products.filter(p => p.categoryId !== 1).length === 0 ? 'Chưa có sản phẩm' : ''}
+            title={productsLoading ? 'Đang tải sản phẩm...' : ''}
           >
             <span style={{ fontSize: 16 }}>+</span> {productsLoading ? '⏳ Tải...' : 'Dịch vụ'}
             {services.length > 0 && (

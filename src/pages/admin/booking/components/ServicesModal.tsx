@@ -7,7 +7,7 @@ interface ServiceItem {
   name: string;
   unit: string;
   price: number;
-  category: string;
+  category: number;
 }
 
 interface SelectedService {
@@ -34,7 +34,7 @@ function productsToServiceItems(products: IProduct[]): ServiceItem[] {
         name: p.productName,
         unit: d.unit,
         price: d.unitPrice ?? 0,
-        category: p.categoryName || `Danh mục ${p.categoryId}`,
+        category: p.categoryId,
       }))
     );
 }
@@ -53,14 +53,14 @@ export function ServicesModal({
   }, [products, services]);
 
   const [local, setLocal] = useState<SelectedService[]>(selected.map(s => ({ ...s })));
-  const [activeCategory, setActiveCategory] = useState('Tất cả');
+  const [activeCategory, setActiveCategory] = useState(0);
   
   const categories = useMemo(
-    () => ['Tất cả', ...Array.from(new Set(allItems.map(s => s.category)))],
+    () => [0, ...Array.from(new Set(allItems.map(s => s.category)))],
     [allItems]
   );
 
-  const displayed = activeCategory === 'Tất cả' 
+  const displayed = activeCategory === 0 
     ? allItems 
     : allItems.filter(s => s.category === activeCategory);
 
