@@ -1,22 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useFetchProducts } from '../../../../hooks/useProduct';
 import { useFetchCourts } from '../../../../hooks/useCourt';
 import { ServicesModal } from './ServicesModal';
 import { InvoiceModal } from './InvoiceModal';
-import type { IProduct } from '../../../../types/product.type';
 import type { ICourt } from '../../../../types/court.type';
 import type { AdminOrder } from '../../../../types/order.type';
 
-interface ServiceItem {
-  id: number;
-  name: string;
-  unit: string;
-  price: number;
-  category: string;
-}
-
 interface SelectedService {
-  service: ServiceItem;
+  service: {
+    id: number;
+    detailId?: number;
+    name: string;
+    unit: string;
+    price: number;
+    category: string;
+  };
   qty: number;
 }
 
@@ -30,12 +28,11 @@ interface BookingFormProps {
 
 const fmt = (n: number) => n.toLocaleString('vi-VN');
 const TIME_SLOTS = [
-  '6:00','6:30','7:00','7:30','8:00','8:30','9:00','9:30',
+  '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
   '10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30',
   '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
   '18:00','18:30','19:00','19:30','20:00','20:30','21:00',
 ];
-const COURT_PRICE_PER_HOUR = 80000;
 
 function calcHours(start: string, end: string): number {
   const toMin = (t: string) => {
@@ -45,42 +42,41 @@ function calcHours(start: string, end: string): number {
   return Math.max(0, (toMin(end) - toMin(start)) / 60);
 }
 
-function productsToServices(products: IProduct[]): ServiceItem[] {
-  return products
-    .filter(p => p.categoryId !== 1)
-    .flatMap(p => 
-      p.details.map(d => ({
-        id: p.productId,
-        name: p.productName,
-        unit: d.unit,
-        price: d.unitPrice ?? 0,
-        category: p.categoryId.toString(),
-      }))
-    );
-}
-
 export function BookingForm({ onBack, onSubmit, loading = false, order, isEditing = false }: BookingFormProps) {
-  const { data: products = [] } = useFetchProducts();
+  const { data: products = [], isLoading: productsLoading } = useFetchProducts();
   const { data: courts = [] } = useFetchCourts();
   
   const [courtIds, setCourtIds] = useState<number[]>(order?.courtIds ?? [courts[0]?.courtId ?? 1]);
   const [date, setDate] = useState(order?.orderDate ?? '');
-  const [startTime, setStartTime] = useState(order?.startHour ?? '');
-  const [endTime, setEndTime] = useState(order?.endHour ?? '');
+  const [selectedSlots, setSelectedSlots] = useState<string[]>([]);
   const [services, setServices] = useState<SelectedService[]>([]);
   const [showServices, setShowServices] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
 
-  const servicesList = useMemo(() => 
-    products.length > 0 ? productsToServices(products) : [],
-    [products]
-  );
+  // Get start and end times from selected slots (auto-detect)
+  const sortedSlots = [...selectedSlots].sort((a, b) => TIME_SLOTS.indexOf(a) - TIME_SLOTS.indexOf(b));
+  const startHour = sortedSlots.length > 0 ? sortedSlots[0] : '';
+  const endHour = sortedSlots.length > 0 
+    ? TIME_SLOTS[Math.min(TIME_SLOTS.indexOf(sortedSlots[sortedSlots.length - 1]) + 1, TIME_SLOTS.length - 1)]
+    : '';
 
-  const hours = calcHours(startTime, endTime);
-  const courtFee = hours * COURT_PRICE_PER_HOUR;
+  // Get court price from selected court
+  const selectedCourt = courts.find(c => c.courtId === courtIds[0]);
+  const courtPrice = selectedCourt?.unitPrice ?? 0;
+
+  const hours = calcHours(startHour, endHour);
+  const courtFee = hours * courtPrice;
   const serviceFee = services.reduce((s, i) => s + i.service.price * i.qty, 0);
   const total = courtFee + serviceFee;
-  const canSubmit = courtIds.length > 0 && startTime && endTime && date && (!isEditing || services.length > 0);
+  const canSubmit = courtIds.length > 0 && selectedSlots.length > 0 && date && (!isEditing || services.length > 0);
+
+  const toggleSlot = (slot: string) => {
+    setSelectedSlots(prev => 
+      prev.includes(slot) 
+        ? prev.filter(s => s !== slot) 
+        : [...prev, slot]
+    );
+  };
 
   const handleConfirm = async () => {
     if (isEditing) {
@@ -99,12 +95,22 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
         console.error('Submit error:', error);
       }
     } else {
-      const orderData = {
+      const orderData: any = {
         orderDate: date,
-        startHour: startTime,
-        endHour: endTime,
+        startHour: `${startHour}:00`,
+        endHour: `${endHour}:00`,
         courtIds,
       };
+
+      // Only include productDetails if there are services
+      if (services.length > 0) {
+        orderData.productDetails = services.map(s => ({
+          productId: s.service.id,
+          productCategoryId: parseInt(s.service.category),
+          quantity: s.qty,
+        }));
+      }
+
       try {
         await onSubmit(orderData);
         setShowInvoice(false);
@@ -125,15 +131,15 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {showServices && (
-        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} services={servicesList} />
+        <ServicesModal selected={services} onChange={setServices} onClose={() => setShowServices(false)} products={products.filter(p => p.categoryId !== 1)} />
       )}
       {showInvoice && (
         <InvoiceModal
           customerName={isEditing ? order?.guestName ?? '' : ''}
           courtId={courtIds[0] ?? 1}
           courts={courts.map(c => ({ id: c.courtId, name: c.name }))}
-          startTime={startTime}
-          endTime={endTime}
+          startTime={startHour}
+          endTime={endHour}
           services={services}
           onConfirm={handleConfirm}
           onClose={() => setShowInvoice(false)}
@@ -190,87 +196,53 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                       fontFamily: 'inherit',
                       transition: 'all 0.12s',
                     }}
+                    title={`${fmt(c.unitPrice)}đ/giờ`}
                   >
                     {c.name}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div>
-              <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>GIỜ BẮT ĐẦU *</label>
-              <select
-                value={startTime}
-                onChange={e => setStartTime(e.target.value)}
-                disabled={loading}
-                style={{...inp, appearance: 'none' }}
-                onFocus={e => (e.target.style.borderColor = '#D4840A')}
-                onBlur={e => (e.target.style.borderColor = '#e8e8e8')}
-              >
-                <option value="">-- Chọn giờ bắt đầu --</option>
-                {TIME_SLOTS.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>GIỜ KẾT THÚC *</label>
-              <select
-                value={endTime}
-                onChange={e => setEndTime(e.target.value)}
-                disabled={loading}
-                style={{...inp, appearance: 'none' }}
-                onFocus={e => (e.target.style.borderColor = '#D4840A')}
-                onBlur={e => (e.target.style.borderColor = '#e8e8e8')}
-              >
-                <option value="">-- Chọn giờ kết thúc --</option>
-                {TIME_SLOTS.map(slot => (
-                  <option key={slot} value={slot}>{slot}</option>
-                ))}
-              </select>
-            </div>
           </>
         )}
 
         {/* Services button */}
-        {(isEditing || servicesList.length > 0) && (
-          <div>
-            <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 6, fontWeight: 600 }}>DỊCH VỤ KÈM</label>
-            <button
-              onClick={() => setShowServices(true)}
-              disabled={loading || servicesList.length === 0}
-              style={{
-                width: '100%', padding: '11px', borderRadius: 9,
-                border: '1.5px solid #378ADD', background: '#EFF6FF',
-                color: '#1D4ED8', fontWeight: 600, fontSize: 13.5,
-                cursor: loading || servicesList.length === 0 ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                opacity: servicesList.length === 0 ? 0.5 : 1,
-              }}
-            >
-              <span style={{ fontSize: 16 }}>+</span> Dịch vụ
-              {services.length > 0 && (
-                <span style={{ background: '#378ADD', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-                  {services.length}
-                </span>
-              )}
-            </button>
+        <div>
+          <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 6, fontWeight: 600 }}>SẢN PHẨM & DỊCH VỤ</label>
+          <button
+            onClick={() => setShowServices(true)}
+            disabled={products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading}
+            style={{
+              width: '100%', padding: '11px', borderRadius: 9,
+              border: '1.5px solid #378ADD', background: '#EFF6FF',
+              color: '#1D4ED8', fontWeight: 600, fontSize: 13.5,
+              cursor: products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading ? 'default' : 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: products.filter(p => p.categoryId !== 1).length === 0 && !productsLoading ? 0.5 : 1,
+            }}
+            title={productsLoading ? 'Đang tải...' : products.filter(p => p.categoryId !== 1).length === 0 ? 'Chưa có sản phẩm' : ''}
+          >
+            <span style={{ fontSize: 16 }}>+</span> {productsLoading ? '⏳ Tải...' : 'Dịch vụ'}
             {services.length > 0 && (
-              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {services.map(s => (
-                  <div key={s.service.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '5px 10px', background: '#f5f5f3', borderRadius: 6 }}>
-                    <span style={{ color: '#555' }}>{s.service.name} ×{s.qty}</span>
-                    <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{fmt(s.service.price * s.qty)}đ</span>
-                  </div>
-                ))}
-              </div>
+              <span style={{ background: '#378ADD', color: '#fff', borderRadius: '50%', width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
+                {services.length}
+              </span>
             )}
-          </div>
-        )}
+          </button>
+          {services.length > 0 && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {services.map((s, idx) => (
+                <div key={`${s.service.id}-${s.service.detailId}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '5px 10px', background: '#f5f5f3', borderRadius: 6 }}>
+                  <span style={{ color: '#555' }}>{s.service.name} ×{s.qty}</span>
+                  <span style={{ fontWeight: 600, color: '#1a1a1a' }}>{fmt(s.service.price * s.qty)}đ</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Summary */}
-        {startTime && endTime && !isEditing && (
+        {selectedSlots.length > 0 && !isEditing && (
           <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FFF7ED', border: '1px solid #FDE68A', fontSize: 12.5 }}>
             <div style={{ color: '#888', marginBottom: 6 }}>Tóm tắt:</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -308,36 +280,64 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
       {/* Right: time slot grid or info */}
       {!isEditing && (
         <div style={{ flex: 1, overflowY: 'auto', padding: '22px 24px', background: '#f7f7f5' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', marginBottom: 16 }}>Chọn thời gian</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a1a1a', marginBottom: 16 }}>Chọn khung giờ</div>
 
           {date ? (
             <div style={{ background: '#EFF6FF', borderRadius: 14, padding: '16px', border: '1px solid #BFDBFE' }}>
-              <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
                 <strong>Ngày:</strong> {date}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {TIME_SLOTS.map(slot => (
-                  <button
-                    key={slot}
-                    onClick={() => {
-                      if (startTime === '') setStartTime(slot);
-                      else if (endTime === '') setEndTime(slot);
-                    }}
-                    disabled={loading}
-                    style={{
-                      padding: '8px', borderRadius: 6,
-                      border: '1px solid #e0e0e0',
-                      background: startTime === slot || endTime === slot ? '#378ADD' : '#fff',
-                      color: startTime === slot || endTime === slot ? '#fff' : '#333',
-                      fontWeight: startTime === slot || endTime === slot ? 700 : 400,
-                      fontSize: 12,
-                      cursor: loading ? 'default' : 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    {slot}
-                  </button>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                {TIME_SLOTS.map(slot => {
+                  const slotIndex = TIME_SLOTS.indexOf(slot);
+                  const startIndex = startHour ? TIME_SLOTS.indexOf(startHour) : -1;
+                  const endIndex = endHour ? TIME_SLOTS.indexOf(endHour) : -1;
+                  const isInRange = startIndex >= 0 && endIndex >= 0 && slotIndex >= startIndex && slotIndex < endIndex;
+                  const isSelected = selectedSlots.includes(slot);
+
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => toggleSlot(slot)}
+                      disabled={loading}
+                      style={{
+                        padding: '10px', borderRadius: 6,
+                        border: `1.5px solid ${isSelected ? '#378ADD' : isInRange ? '#BFDBFE' : '#e0e0e0'}`,
+                        background: isSelected ? '#378ADD' : isInRange ? '#E0EEFF' : '#fff',
+                        color: isSelected ? '#fff' : '#333',
+                        fontWeight: isSelected ? 700 : isInRange ? 600 : 400,
+                        fontSize: 11.5,
+                        cursor: loading ? 'default' : 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'all 0.12s',
+                      }}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedSlots.length > 0 && (
+                <div style={{ marginTop: 12, padding: '10px 12px', background: '#fff', borderRadius: 8, fontSize: 12, color: '#555' }}>
+                  <strong>Đã chọn:</strong> {startHour} – {endHour} ({hours}h · {fmt(courtFee)}đ)
+                </div>
+              )}
+
+              {/* Legend */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', fontSize: 11 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#378ADD', flexShrink: 0 }} />
+                  <span style={{ color: '#666' }}>Đã chọn</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#E0EEFF', border: '1px solid #BFDBFE', flexShrink: 0 }} />
+                  <span style={{ color: '#666' }}>Khoảng thời gian</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#fff', border: '1px solid #e0e0e0', flexShrink: 0 }} />
+                  <span style={{ color: '#666' }}>Trống</span>
+                </div>
               </div>
             </div>
           ) : (

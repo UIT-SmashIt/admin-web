@@ -87,11 +87,18 @@ export interface AdminOrder {
   courtIds: number[];
 }
 
+export interface ProductDetail {
+  productId: number;
+  productCategoryId: number;
+  quantity: number;
+}
+
 export interface AdminOrderCreatePayload {
   orderDate: string;
   startHour: string;
   endHour: string;
   courtIds: number[];
+  productDetails?: ProductDetail[];
 }
 
 export interface AdminOrderUpdateService {
