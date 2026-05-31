@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFetchProducts } from '../../../../hooks/useProduct';
 import { useFetchCourts } from '../../../../hooks/useCourt';
+import { useFetchCourtSchedule } from '../../../../hooks/useOrder';
 import { ServicesModal } from './ServicesModal';
 import { InvoiceModal } from './InvoiceModal';
 import type { ICourt } from '../../../../types/court.type';
-import type { AdminOrder } from '../../../../types/order.type';
+import type { AdminOrder, CourtScheduleSlot } from '../../../../types/order.type';
 
 interface SelectedService {
   service: {
@@ -45,6 +46,7 @@ function calcHours(start: string, end: string): number {
 export function BookingForm({ onBack, onSubmit, loading = false, order, isEditing = false }: BookingFormProps) {
   const { data: products = [], isLoading: productsLoading } = useFetchProducts();
   const { data: courts = [] } = useFetchCourts();
+  const { mutate: fetchSchedule } = useFetchCourtSchedule();
   
   const [courtIds, setCourtIds] = useState<number[]>(order?.courtIds ?? [courts[0]?.courtId ?? 1]);
   const [date, setDate] = useState(order?.orderDate ?? '');
@@ -52,6 +54,21 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const [services, setServices] = useState<SelectedService[]>([]);
   const [showServices, setShowServices] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState<CourtScheduleSlot[]>([]);
+
+  // Load booked slots when date or court changes
+  useEffect(() => {
+    if (date && courtIds.length > 0) {
+      fetchSchedule({ orderDate: date }, {
+        onSuccess: (data) => {
+          // Extract booked slots for the selected court
+          const courtId = courtIds[0];
+          const slots = data[courtId.toString()] || [];
+          setBookedSlots(slots);
+        },
+      });
+    }
+  }, [date, courtIds, fetchSchedule]);
 
   // Get start and end times from selected slots (auto-detect)
   const sortedSlots = [...selectedSlots].sort((a, b) => TIME_SLOTS.indexOf(a) - TIME_SLOTS.indexOf(b));
@@ -71,11 +88,31 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const canSubmit = courtIds.length > 0 && selectedSlots.length > 0 && date && (!isEditing || services.length > 0);
 
   const toggleSlot = (slot: string) => {
+    // Check if slot is booked
+    const isBooked = isSlotBooked(slot);
+    if (isBooked) return; // Don't allow selecting booked slots
+    
     setSelectedSlots(prev => 
       prev.includes(slot) 
         ? prev.filter(s => s !== slot) 
         : [...prev, slot]
     );
+  };
+
+  const isSlotBooked = (slot: string): boolean => {
+    return bookedSlots.some(booked => {
+      const bookedStart = booked.startHour.substring(0, 5); // "04:00"
+      const bookedEnd = booked.endHour.substring(0, 5);     // "05:00"
+      const slotIndex = TIME_SLOTS.indexOf(slot);
+      const startIndex = TIME_SLOTS.indexOf(bookedStart);
+      const endIndex = TIME_SLOTS.indexOf(bookedEnd);
+      
+      // If times not found in TIME_SLOTS, skip
+      if (startIndex === -1 || endIndex === -1) return false;
+      
+      // Lock all slots within the booked range (inclusive)
+      return slotIndex >= startIndex && slotIndex <= endIndex;
+    });
   };
 
   const handleConfirm = async () => {
@@ -294,23 +331,26 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                   const endIndex = endHour ? TIME_SLOTS.indexOf(endHour) : -1;
                   const isInRange = startIndex >= 0 && endIndex >= 0 && slotIndex >= startIndex && slotIndex < endIndex;
                   const isSelected = selectedSlots.includes(slot);
+                  const isBooked = isSlotBooked(slot);
 
                   return (
                     <button
                       key={slot}
                       onClick={() => toggleSlot(slot)}
-                      disabled={loading}
+                      disabled={loading || isBooked || (isInRange && !isSelected)}
                       style={{
                         padding: '10px', borderRadius: 6,
-                        border: `1.5px solid ${isSelected ? '#378ADD' : isInRange ? '#BFDBFE' : '#e0e0e0'}`,
-                        background: isSelected ? '#378ADD' : isInRange ? '#E0EEFF' : '#fff',
-                        color: isSelected ? '#fff' : '#333',
-                        fontWeight: isSelected ? 700 : isInRange ? 600 : 400,
+                        border: `1.5px solid ${isBooked ? '#DC2626' : isSelected ? '#378ADD' : isInRange ? '#BFDBFE' : '#e0e0e0'}`,
+                        background: isBooked ? '#FEE2E2' : isSelected ? '#378ADD' : isInRange ? '#E0EEFF' : '#fff',
+                        color: isBooked ? '#DC2626' : isSelected ? '#fff' : isInRange ? '#999' : '#333',
+                        fontWeight: isBooked ? 700 : isSelected ? 700 : isInRange ? 600 : 400,
                         fontSize: 11.5,
-                        cursor: loading ? 'default' : 'pointer',
+                        cursor: loading || isBooked || (isInRange && !isSelected) ? 'not-allowed' : 'pointer',
                         fontFamily: 'inherit',
                         transition: 'all 0.12s',
+                        opacity: isInRange && !isSelected ? 0.6 : 1,
                       }}
+                      title={isBooked ? 'Khung giờ này đã được đặt' : isInRange && !isSelected ? 'Khung giờ đã khóa' : ''}
                     >
                       {slot}
                     </button>
@@ -331,8 +371,12 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                   <span style={{ color: '#666' }}>Đã chọn</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#E0EEFF', border: '1px solid #BFDBFE', flexShrink: 0 }} />
-                  <span style={{ color: '#666' }}>Khoảng thời gian</span>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#E0EEFF', border: '1px solid #BFDBFE', flexShrink: 0, opacity: 0.6 }} />
+                  <span style={{ color: '#666' }}>Khóa</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: '#FEE2E2', border: '1px solid #DC2626', flexShrink: 0 }} />
+                  <span style={{ color: '#666' }}>Đã đặt</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <div style={{ width: 12, height: 12, borderRadius: 3, background: '#fff', border: '1px solid #e0e0e0', flexShrink: 0 }} />
