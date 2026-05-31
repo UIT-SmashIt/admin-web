@@ -16,3 +16,16 @@ export interface AdminUpdatePayload {
   role: AdminRole;
   color: string;
 }
+
+export interface CreateAdminPayload {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  color: string;
+}
+
+export interface ChangePasswordPayload {
+  oldPassword: string;
+  newPassword: string;
+}

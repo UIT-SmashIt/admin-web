@@ -55,6 +55,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const [showServices, setShowServices] = useState(false);
   const [showInvoice, setShowInvoice] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<CourtScheduleSlot[]>([]);
+  const [error, setError] = useState<string>('');
 
   // Load booked slots when date or court changes
   useEffect(() => {
@@ -81,11 +82,59 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const selectedCourt = courts.find(c => c.courtId === courtIds[0]);
   const courtPrice = selectedCourt?.unitPrice ?? 0;
 
+  // Helper functions
+  const isSlotBooked = (slot: string): boolean => {
+    return bookedSlots.some(booked => {
+      const bookedStart = booked.startHour.substring(0, 5); // "04:00"
+      const bookedEnd = booked.endHour.substring(0, 5);     // "05:00"
+      const slotIndex = TIME_SLOTS.indexOf(slot);
+      const startIndex = TIME_SLOTS.indexOf(bookedStart);
+      const endIndex = TIME_SLOTS.indexOf(bookedEnd);
+      
+      // If times not found in TIME_SLOTS, skip
+      if (startIndex === -1 || endIndex === -1) return false;
+      
+      // Lock all slots within the booked range (exclusive end)
+      return slotIndex >= startIndex && slotIndex < endIndex;
+    });
+  };
+
+  const isTimeInPast = (): boolean => {
+    if (!date || !startHour || !endHour) return false;
+    
+    const now = new Date();
+    const [year, month, day] = date.split('-').map(Number);
+    const selectedDateTime = new Date(year, month - 1, day);
+    
+    const [endHours, endMinutes] = endHour.split(':').map(Number);
+    selectedDateTime.setHours(endHours, endMinutes, 0, 0);
+    
+    return selectedDateTime <= now;
+  };
+
+  const hasBookingConflict = (): boolean => {
+    if (selectedSlots.length === 0 || !startHour || !endHour) return false;
+    
+    // Check if the entire selected range overlaps with any booked range
+    return bookedSlots.some(booked => {
+      const bookedStart = booked.startHour.substring(0, 5);
+      const bookedEnd = booked.endHour.substring(0, 5);
+      
+      // Two time ranges overlap if: range1.start < range2.end AND range1.end > range2.start
+      return startHour < bookedEnd && endHour > bookedStart;
+    });
+  };
+
+  const getTodayString = (): string => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const hours = calcHours(startHour, endHour);
   const courtFee = hours * courtPrice;
   const serviceFee = services.reduce((s, i) => s + i.service.price * i.qty, 0);
   const total = courtFee + serviceFee;
-  const canSubmit = courtIds.length > 0 && selectedSlots.length > 0 && date && (!isEditing || services.length > 0);
+  const canSubmit = courtIds.length > 0 && selectedSlots.length > 0 && date && !isTimeInPast() && !hasBookingConflict() && (!isEditing || services.length > 0);
 
   const toggleSlot = (slot: string) => {
     // Check if slot is booked
@@ -99,23 +148,19 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
     );
   };
 
-  const isSlotBooked = (slot: string): boolean => {
-    return bookedSlots.some(booked => {
-      const bookedStart = booked.startHour.substring(0, 5); // "04:00"
-      const bookedEnd = booked.endHour.substring(0, 5);     // "05:00"
-      const slotIndex = TIME_SLOTS.indexOf(slot);
-      const startIndex = TIME_SLOTS.indexOf(bookedStart);
-      const endIndex = TIME_SLOTS.indexOf(bookedEnd);
-      
-      // If times not found in TIME_SLOTS, skip
-      if (startIndex === -1 || endIndex === -1) return false;
-      
-      // Lock all slots within the booked range (inclusive)
-      return slotIndex >= startIndex && slotIndex <= endIndex;
-    });
-  };
-
   const handleConfirm = async () => {
+    // Check for past booking
+    if (isTimeInPast()) {
+      setError('Không thể đặt ở quá khứ. Vui lòng chọn ngày và giờ trong tương lai.');
+      return;
+    }
+
+    // Check for booking conflicts
+    if (hasBookingConflict()) {
+      setError('Khoảng thời gian này có xung đột với lịch đã đặt. Vui lòng chọn khung giờ khác.');
+      return;
+    }
+
     if (isEditing) {
       const orderData = {
         services: services.map(s => ({
@@ -127,9 +172,11 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
       try {
         await onSubmit(orderData);
         setShowInvoice(false);
+        setError('');
         onBack();
       } catch (error) {
         console.error('Submit error:', error);
+        setError('Có lỗi xảy ra khi cập nhật đơn hàng');
       }
     } else {
       const orderData: any = {
@@ -151,9 +198,11 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
       try {
         await onSubmit(orderData);
         setShowInvoice(false);
+        setError('');
         onBack();
       } catch (error) {
         console.error('Submit error:', error);
+        setError('Có lỗi xảy ra khi tạo đơn hàng');
       }
     }
   };
@@ -179,7 +228,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
           endTime={endHour}
           services={services}
           onConfirm={handleConfirm}
-          onClose={() => setShowInvoice(false)}
+          onClose={() => { setShowInvoice(false); setError(''); }}
           loading={loading}
         />
       )}
@@ -198,8 +247,9 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
               <input
                 type="date"
                 value={date}
-                onChange={e => setDate(e.target.value)}
+                onChange={e => { setDate(e.target.value); setError(''); }}
                 disabled={loading}
+                min={getTodayString()}
                 style={{...inp }}
                 onFocus={e => (e.target.style.borderColor = '#D4840A')}
                 onBlur={e => (e.target.style.borderColor = '#e8e8e8')}
@@ -295,6 +345,12 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                 <span>Tổng</span><span>{fmt(total)}đ</span>
               </div>
             </div>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FEE2E2', border: '1px solid #FECDD3', fontSize: 12.5, color: '#DC2626', fontWeight: 500 }}>
+            {error}
           </div>
         )}
 

@@ -1,9 +1,10 @@
-import type {AdminUpdatePayload, IAdmin} from "../../../../types/admin.type.ts";
+import type {AdminUpdatePayload, IAdmin, CreateAdminPayload} from "../../../../types/admin.type.ts";
 import {useState} from "react";
 import type {AdminRole} from "../../../../const/adminRole.const.ts";
 import {PALETTE} from "../../../../const/palette.const.ts";
 import {initials} from "../utils/slice-name.ts";
 import {ColorPalettePicker} from "../../../../components/ColorPalettePicker.tsx";
+import {useCreateAdmin, useEditAdmin, useRemoveAdmin} from "../../../../hooks/useAdmin.ts";
 
 const ADMIN_ROLE_OPTIONS: { value: AdminRole; label: string }[] = [
   { value: 'Employee', label: 'Nhân viên' },
@@ -21,27 +22,54 @@ export function AdminListModal({
   onDelete: (id: number) => void;
   onClose: () => void;
 }) {
-  const [mode, setMode] = useState<'list' | 'edit'>('list');
+  const [mode, setMode] = useState<'list' | 'edit' | 'create'>('list');
   const [editing, setEditing] = useState<IAdmin | null>(null);
-  const [form, setForm] = useState<{ name: string, role: AdminRole, email: string, phone: string}>({ name: '', role: "Employee", email: '' , phone: '' });
+  const [form, setForm] = useState<{ name: string, role: AdminRole, email: string, phone: string, password?: string}>({ name: '', role: "Employee", email: '' , phone: '' });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [selPalette, setSelPalette] = useState<{ color: string; text: string }>(
     editing ? { color: editing.color, text: editing.color } : PALETTE[0]
   );
 
-  const openEdit = (s: IAdmin) => { setEditing(s); setForm({ name: s.adminName, role: s.role, email: s.email, phone: s.phoneNumber }); setMode('edit'); };
+  const createAdminMutation = useCreateAdmin();
+  const editAdminMutation = useEditAdmin();
+  const removeAdminMutation = useRemoveAdmin();
 
-  const handleSave = () => {
+  const openEdit = (s: IAdmin) => { 
+    setEditing(s); 
+    setForm({ name: s.adminName, role: s.role, email: s.email, phone: s.phoneNumber }); 
+    setMode('edit'); 
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: '', role: "Employee", email: '' , phone: '', password: '' });
+    setSelPalette(PALETTE[0]);
+    setMode('create');
+  };
+
+  const handleSave = async () => {
     if (!form.name.trim()) return;
-    onEdit(
-      editing!.adminId,
-      {
-        adminName: form.name,
+    if (mode === 'edit' && editing) {
+      onEdit(
+        editing.adminId,
+        {
+          adminName: form.name,
+          email: form.email,
+          phoneNumber: form.phone,
+          role: form.role,
+          color: selPalette.text
+        });
+    } else if (mode === 'create') {
+      if (!form.password?.trim()) return;
+      const payload: CreateAdminPayload = {
+        name: form.name,
         email: form.email,
         phoneNumber: form.phone,
-        role: form.role,
+        password: form.password,
         color: selPalette.text
-      });
+      };
+      await createAdminMutation.mutateAsync(payload);
+    }
     setMode('list');
   };
 
@@ -84,7 +112,7 @@ export function AdminListModal({
             )}
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a' }}>
-                {mode === 'list' ? 'Danh sách nhân viên' : 'Sửa thông tin'}
+                {mode === 'list' ? 'Danh sách nhân viên' : mode === 'edit' ? 'Sửa thông tin' : 'Thêm nhân viên'}
               </div>
               {mode === 'list' && (
                 <div style={{ fontSize: 12, color: '#aaa', marginTop: 1 }}>{staffList.length} nhân viên</div>
@@ -104,6 +132,13 @@ export function AdminListModal({
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {mode === 'list' ? (
             <div style={{ padding: '8px 0' }}>
+              <div style={{ padding: '12px 22px', borderBottom: '0.5px solid #f5f5f3' }}>
+                <button onClick={openCreate} style={{
+                  width: '100%', padding: '10px', borderRadius: 8, border: 'none',
+                  background: '#D4840A', color: '#fff', fontSize: 13, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}>+ Thêm nhân viên</button>
+              </div>
               {staffList.map(s => (
                 <div key={s.adminId}
                      style={{
@@ -170,18 +205,29 @@ export function AdminListModal({
                        onFocus={e => (e.target.style.borderColor = '#D4840A')}
                        onBlur={e => (e.target.style.borderColor = '#e8e8e8')} />
               </div>
+              {mode === 'edit' && (
+                <div>
+                  <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                    VỊ TRÍ
+                  </label>
+                  <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as AdminRole }))}
+                          style={{ ...inputStyle, appearance: 'none' as const }}>
+                    {ADMIN_ROLE_OPTIONS.map(role => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
-                  VỊ TRÍ
+                  EMAIL
                 </label>
-                <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as AdminRole }))}
-                        style={{ ...inputStyle, appearance: 'none' as const }}>
-                  {ADMIN_ROLE_OPTIONS.map(role => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
+                <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                       placeholder="email@example.com" style={inputStyle}
+                       onFocus={e => (e.target.style.borderColor = '#D4840A')}
+                       onBlur={e => (e.target.style.borderColor = '#e8e8e8')} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
@@ -191,16 +237,32 @@ export function AdminListModal({
                        placeholder="09xx xxx xxx" style={inputStyle}
                        onFocus={e => (e.target.style.borderColor = '#D4840A')}
                        onBlur={e => (e.target.style.borderColor = '#e8e8e8')} />
+              </div>
+              {mode === 'create' && (
+                <div>
+                  <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                    MẬT KHẨU <span style={{ color: '#D4840A' }}>*</span>
+                  </label>
+                  <input value={form.password || ''} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                         type="password" placeholder="••••••••" style={inputStyle}
+                         onFocus={e => (e.target.style.borderColor = '#D4840A')}
+                         onBlur={e => (e.target.style.borderColor = '#e8e8e8')} />
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: 12, color: '#888', display: 'block', marginBottom: 6, fontWeight: 500 }}>
+                  MÀU
+                </label>
                 <ColorPalettePicker palette={PALETTE} selectedPalette={selPalette} onChange={setSelPalette} />
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button onClick={handleSave} disabled={!form.name.trim()} style={{
+                <button onClick={handleSave} disabled={!form.name.trim() || (mode === 'create' && !form.password?.trim())} style={{
                   flex: 1, padding: '12px', borderRadius: 10, border: 'none',
-                  background: form.name.trim() ? '#D4840A' : '#e0e0e0',
+                  background: (form.name.trim() && (mode === 'edit' || form.password?.trim())) ? '#D4840A' : '#e0e0e0',
                   color: '#fff', fontWeight: 700, fontSize: 14,
-                  cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
+                  cursor: (form.name.trim() && (mode === 'edit' || form.password?.trim())) ? 'pointer' : 'default', fontFamily: 'inherit',
                 }}>
-                  ✓ Lưu thay đổi
+                  {mode === 'create' ? '✓ Thêm' : '✓ Lưu thay đổi'}
                 </button>
                 <button onClick={() => setMode('list')} style={{
                   flex: 1, padding: '12px', borderRadius: 10,
