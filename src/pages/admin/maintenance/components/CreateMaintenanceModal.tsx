@@ -75,7 +75,7 @@ export function CreateMaintenanceModal({
           <div>
             <Label>SÂN *</Label>
             <select value={form.courtId} onChange={e => set('courtId', parseInt(e.target.value))} style={{ ...inp, appearance: 'none' as const }}>
-              {courts.map(c => <option key={c.courtId} value={c.courtId}>{c.name}</option>)}
+              {courts.map(c => <option key={c.courtId} value={c.courtId}>{c.courtId}</option>)}
             </select>
           </div>
 
@@ -111,7 +111,7 @@ export function CreateMaintenanceModal({
 
         <div>
           <Label>SÂN (tóm tắt)</Label>
-          <input value={courts.find(c => c.courtId === form.courtId)?.name || ''} readOnly placeholder="—"
+          <input value={courts.find(c => c.courtId === form.courtId)?.courtId || ''} readOnly placeholder="—"
             style={{ ...inp, background: '#f5f5f3', color: '#888', cursor: 'default' }} />
         </div>
 

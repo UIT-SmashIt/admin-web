@@ -8,7 +8,7 @@ export interface IMaintenance {
   updatedAt: string;
   categoryName: string;
   facilityName: string;
-  courtName: string;
+  courtIndex: number; 
 }
 
 export interface MaintenanceCreatePayload {
@@ -24,4 +24,15 @@ export interface MaintenanceEditPayload {
   categoryId?: number;
   facilityId?: number;
   courtId?: number;
+}
+
+export interface IMaintenanceUpdate {
+  maintainId: number;
+  detail: string;
+  status: MaintenanceStatus;
+  createdAt: string;
+  updatedAt: string;
+  categoryName: string;
+  facilityName: string;
+  courtId: number;
 }

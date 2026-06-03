@@ -1,8 +1,10 @@
+// 1. Đổi import từ IMaintenanceUpdate thành IMaintenance
 import type { IMaintenance, MaintenanceStatus } from '../../../../types/maintenance.type';
 import { MaintenanceStatusBadge, STATUS_CONFIG } from './MaintenanceStatusBadge';
 
 interface DetailModalProps {
-  maintenance: IMaintenance;
+  // 2. Đổi kiểu dữ liệu của prop từ IMaintenanceUpdate thành IMaintenance
+  maintenance: IMaintenance; 
   onStatusChange: (id: number, status: MaintenanceStatus) => void;
   onClose: () => void;
 }
@@ -21,7 +23,7 @@ export function DetailModal({ maintenance, onStatusChange, onClose }: DetailModa
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ background: '#fff', borderRadius: 18, width: 480, boxShadow: '0 24px 80px rgba(0,0,0,0.18)', fontFamily: "'Be Vietnam Pro', sans-serif", overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '20px 24px 16px', borderBottom: '0.5px solid #f0f0ee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '0.5px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a1a' }}>🔧 Chi tiết phiếu bảo trì</div>
             <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>ID: {maintenance.maintainId} · {formatDate(maintenance.createdAt)}</div>
@@ -33,7 +35,8 @@ export function DetailModal({ maintenance, onStatusChange, onClose }: DetailModa
             {[
               { label: 'Danh mục', value: maintenance.categoryName },
               { label: 'Cơ sở', value: maintenance.facilityName },
-              { label: 'Sân', value: maintenance.courtName },
+              // 3. Đổi từ maintenance.courtId thành maintenance.courtIndex để khớp dữ liệu backend trả về
+              { label: 'Sân', value: `Sân số ${maintenance.courtIndex}` }, 
               { label: 'Trạng thái', value: <MaintenanceStatusBadge status={maintenance.status} small /> },
             ].map(f => (
               <div key={f.label} style={{ padding: '12px 14px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0ee' }}>
