@@ -20,7 +20,7 @@ export function MaintenanceListView({
       (m.detail.toLowerCase().includes(q) ||
         m.categoryName.toLowerCase().includes(q) ||
         m.facilityName.toLowerCase().includes(q) ||
-        m.courtName.toLowerCase().includes(q)) &&
+        m.courtIndex.toString().includes(q)) &&
       (filterStatus === 'all' || m.status === filterStatus)
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [maintenances, search, filterStatus]);
@@ -93,7 +93,7 @@ export function MaintenanceListView({
                 <div>{m.categoryName}</div>
                 <div style={{ fontSize: 11, color: '#bbb' }}>{m.facilityName}</div>
               </div>
-              <div style={{ fontSize: 12.5, color: '#555' }}>{m.courtName}</div>
+              <div style={{ fontSize: 12.5, color: '#555' }}>{m.courtIndex}</div>
               <div><MaintenanceStatusBadge status={m.status} small /></div>
             </div>
           ))}

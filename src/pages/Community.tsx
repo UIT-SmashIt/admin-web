@@ -109,7 +109,7 @@ function PostModal({ mode, post, courts, onSave, onClose }: {
             <div>
               <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>CHỌN SÂN</label>
               <select value={form.courtId} onChange={e => set('courtId', +e.target.value)} style={{ ...inp, appearance: 'none' as const }}>
-                {(window as any).__courts?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {(window as any).__courts?.map((c: any) => <option key={c.id} value={c.id}>{c.courtIndex}</option>)}
               </select>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function CongDong() {
     const q = search.toLowerCase();
     return posts.filter(p =>
       (p.caption.toLowerCase().includes(q) || p.authorName.toLowerCase().includes(q) ||
-       courts.find(c => c.courtId === p.courtId)?.name.toLowerCase().includes(q) || false) &&
+       courts.find(c => c.courtId === p.courtId)?.courtId.toString().includes(q) || false) &&
       (filterFull === 'all' || (filterFull === 'open' && !p.isFull) || (filterFull === 'full' && p.isFull)) &&
       (filterLevel === 'Tất cả' || p.level === filterLevel)
     ).sort((a, b) => a.postedAt < b.postedAt ? 1 : -1);
