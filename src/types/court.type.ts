@@ -1,29 +1,24 @@
 export type OrderType = 'daily' | 'fixed';
 export type OrderStatus = 'unpaid' | 'deposit' | 'paid';
-export type CourtStatus = 'Available' | 'Unavailable' | 'Maintenance';
 
 export interface ICourt {
   courtId: number;
-  name: string;
   numOfIndex: number;
-  unitPrice: number;
-  status: CourtStatus;
+  isMaintenance: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CourtAddPayload {
-  name: string;
   numOfIndex: number;
-  unitPrice: number;
-  status: CourtStatus;
 }
 
 export interface CourtEditPayload {
-  name?: string;
-  numOfIndex?: number;
-  unitPrice?: number;
-  status?: CourtStatus;
+  numOfIndex: number;
+}
+
+export interface CourtPriceUpdatePayload {
+  newPrice: number;
 }
 
 export interface IOrder {

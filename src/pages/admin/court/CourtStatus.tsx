@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useFetchCourts, useAddCourt, useEditCourt, useRemoveCourt } from '../../../hooks/useCourt';
-import type { ICourt, CourtStatus } from '../../../types/court.type';
+import { useFetchCourts, useAddCourt, useEditCourt, useRemoveCourt, useUpdateCourtPrice } from '../../../hooks/useCourt';
+import type { ICourt } from '../../../types/court.type';
 import { FacilityView } from './components/FacilityView';
 import { FacilityCategoryView } from './components/FacilityCategoryView';
 import { FacilityCriterionView } from './components/FacilityCriterionView';
@@ -12,19 +12,23 @@ export default function FacilityStatus() {
   const addCourtMutation = useAddCourt();
   const editCourtMutation = useEditCourt();
   const removeCourtMutation = useRemoveCourt();
+  const updatePriceMutation = useUpdateCourtPrice();
 
   const [activeTab, setActiveTab] = useState<TabType>('courts');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
   const [editingCourt, setEditingCourt] = useState<ICourt | null>(null);
+  
   const [formData, setFormData] = useState({
-    name: '',
     numOfIndex: '',
-    unitPrice: '',
-    status: 'Available' as CourtStatus,
+  });
+  const [priceForm, setPriceForm] = useState({
+    newPrice: '',
   });
   
   const isSubmitting = addCourtMutation.isPending || editCourtMutation.isPending;
   const isDeleting = removeCourtMutation.isPending;
+  const isUpdatingPrice = updatePriceMutation.isPending;
 
   const tabs = [
     { id: 'courts' as TabType, label: 'Sân' },
@@ -37,18 +41,12 @@ export default function FacilityStatus() {
     if (court) {
       setEditingCourt(court);
       setFormData({
-        name: court.name,
         numOfIndex: court.numOfIndex.toString(),
-        unitPrice: court.unitPrice.toString(),
-        status: court.status,
       });
     } else {
       setEditingCourt(null);
       setFormData({
-        name: '',
         numOfIndex: '',
-        unitPrice: '',
-        status: 'Available' as CourtStatus,
       });
     }
     setIsModalOpen(true);
@@ -57,37 +55,29 @@ export default function FacilityStatus() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingCourt(null);
-    setFormData({
-      name: '',
-      numOfIndex: '',
-      unitPrice: '',
-      status: 'Available' as CourtStatus,
-    });
+    setFormData({ numOfIndex: '' });
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.numOfIndex.trim() || !formData.unitPrice.trim()) {
-      alert('Vui lòng điền đầy đủ thông tin');
+    if (!formData.numOfIndex.trim()) {
+      alert('Vui lòng điền số hiệu sân');
       return;
     }
 
     const payload = {
-      name: formData.name,
       numOfIndex: parseInt(formData.numOfIndex),
-      unitPrice: parseInt(formData.unitPrice),
-      status: formData.status,
     };
 
     try {
       if (editingCourt) {
         await editCourtMutation.mutateAsync({
-          id: editingCourt.courtId as number,
+          id: editingCourt.courtId,
           data: payload,
         });
-        alert('Cập nhật sân  thành công');
+        alert('Cập nhật thông tin sân thành công');
       } else {
         await addCourtMutation.mutateAsync(payload);
-        alert('Thêm sân  thành công');
+        alert('Thêm sân thành công');
       }
       handleCloseModal();
     } catch (err) {
@@ -96,42 +86,40 @@ export default function FacilityStatus() {
     }
   };
 
-  const handleDelete = async (courtId: string | number) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa sân  này?')) return;
+  const handleUpdatePrice = async () => {
+    if (!priceForm.newPrice.trim()) {
+      alert('Vui lòng nhập giá tiền mới');
+      return;
+    }
+    try {
+      await updatePriceMutation.mutateAsync({
+        newPrice: parseInt(priceForm.newPrice),
+      });
+      alert('Cập nhật cấu hình giá sân thành công');
+      setIsPriceModalOpen(false);
+      setPriceForm({ newPrice: '' });
+    } catch (err) {
+      alert('Có lỗi xảy ra khi cập nhật giá');
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (courtId: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa sân này?')) return;
 
     try {
-      await removeCourtMutation.mutateAsync(courtId as number);
-      alert('Xóa sân  thành công');
+      await removeCourtMutation.mutateAsync(courtId);
+      alert('Xóa sân thành công');
     } catch (err) {
       alert('Có lỗi xảy ra khi xóa');
       console.error(err);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Available':
-        return { bg: '#EAF3DE', color: '#3B6D11' };
-      case 'Unavailable':
-        return { bg: '#FCEBEB', color: '#A32D2D' };
-      case 'Maintenance':
-        return { bg: '#FFF3E0', color: '#E67E22' };
-      default:
-        return { bg: '#E6F1FB', color: '#185FA5' };
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'Available': 'Có sẵn',
-      'Unavailable': 'Không có sẵn',
-      'Maintenance': 'Bảo trì',
-    };
-    return labels[status] || status;
-  };
-
-  const formatPrice = (price: number): string => {
-    return price.toLocaleString('vi-VN');
+  const getStatusStyle = (isMaintenance: boolean) => {
+    return isMaintenance 
+      ? { bg: '#FCEBEB', color: '#A32D2D', label: 'Bảo trì' }
+      : { bg: '#EAF3DE', color: '#3B6D11', label: 'Hoạt động' };
   };
 
   return (
@@ -151,7 +139,7 @@ export default function FacilityStatus() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Trạng thái cơ sở vật chất</div>
-            <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Quản lý sân và các cơ sở vật chất</div>
+            <div style={{ fontSize: 12.5, color: '#888', marginTop: 2 }}>Quản lý hệ thống sân và trang thiết bị</div>
           </div>
         </div>
 
@@ -180,16 +168,6 @@ export default function FacilityStatus() {
                 cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
-              onMouseEnter={(e) => {
-                if (activeTab !== tab.id) {
-                  (e.target as HTMLButtonElement).style.color = '#1a1a1a';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== tab.id) {
-                  (e.target as HTMLButtonElement).style.color = '#888';
-                }
-              }}
             >
               {tab.label}
             </button>
@@ -211,80 +189,61 @@ export default function FacilityStatus() {
           >
             <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>Quản lý sân </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>Quản lý danh sách sân</div>
               </div>
-              <button
-                onClick={() => handleOpenModal()}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#185FA5',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  (e.target as HTMLButtonElement).style.background = '#134078';
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.background = '#185FA5';
-                }}
-              >
-                + Thêm sân mới
-              </button>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setIsPriceModalOpen(true)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#FFF3E0',
+                    color: '#E67E22',
+                    border: '1px solid #FFE0B2',
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cấu hình giá chung
+                </button>
+                <button
+                  onClick={() => handleOpenModal()}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#185FA5',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 6,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  + Thêm sân mới
+                </button>
+              </div>
             </div>
 
-            {/* Error message */}
             {error && (
-              <div
-                style={{
-                  backgroundColor: '#FCEBEB',
-                  color: '#A32D2D',
-                  padding: '12px 16px',
-                  marginBottom: 16,
-                  borderRadius: 8,
-                  border: '0.5px solid #F4A9A9',
-                  fontSize: 13,
-                }}
-              >
-                Lỗi khi tải danh sách sân
+              <div style={{ backgroundColor: '#FCEBEB', color: '#A32D2D', padding: '12px 16px', marginBottom: 16, borderRadius: 8, fontSize: 13 }}>
+                Lỗi khi tải danh sách sân từ hệ thống.
               </div>
             )}
 
-            {/* Loading indicator */}
             {loading && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '40px 0',
-                  color: '#888',
-                }}
-              >
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 0', color: '#888' }}>
                 <div style={{ fontSize: 14 }}>Đang tải dữ liệu...</div>
               </div>
             )}
 
-            {/* Courts table */}
             {!loading && (courts?.length ?? 0) > 0 && (
-              <div
-                style={{
-                  background: '#f7f7f5',
-                  borderRadius: 8,
-                  border: '0.5px solid rgba(0,0,0,0.08)',
-                  overflow: 'hidden',
-                  marginTop: 16,
-                }}
-              >
+              <div style={{ background: '#f7f7f5', borderRadius: 8, border: '0.5px solid rgba(0,0,0,0.08)', overflow: 'hidden', marginTop: 16 }}>
                 {/* Table header */}
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                    gridTemplateColumns: '1fr 2fr 2fr 1fr',
                     backgroundColor: '#f7f7f5',
                     borderBottom: '0.5px solid rgba(0,0,0,0.08)',
                     padding: '12px 16px',
@@ -295,98 +254,56 @@ export default function FacilityStatus() {
                   }}
                 >
                   <div>ID</div>
-                  <div>Tên sân</div>
-                  <div>Giá / giờ</div>
-                  <div>Trạng thái</div>
-                  <div>Thao tác</div>
+                  <div>SỐ THỨ TỰ SÂN</div>
+                  <div>TRẠNG THÁI</div>
+                  <div>THAO TÁC</div>
                 </div>
 
                 {/* Table rows */}
                 {(courts ?? []).map((court) => {
-                  const statusStyle = getStatusColor(court.status);
+                  const status = getStatusStyle(court.isMaintenance);
                   return (
                     <div
                       key={court.courtId}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
+                        gridTemplateColumns: '1fr 2fr 2fr 1fr',
                         padding: '12px 16px',
                         borderBottom: '0.5px solid rgba(0,0,0,0.06)',
                         alignItems: 'center',
                         fontSize: 13,
                         gap: 12,
-                        transition: 'background 0.15s',
                         background: '#fff',
                       }}
-                      onMouseEnter={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.background = '#fafaf8';
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLDivElement).style.background = '#fff';
-                      }}
                     >
-                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.courtId}</div>
-                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>{court.name}</div>
-                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>
-                        {formatPrice(court.unitPrice)} VND
-                      </div>
-                      <div
-                        style={{
-                          display: 'inline-block',
-                          padding: '2px 8px',
-                          borderRadius: 20,
-                          fontSize: 11,
-                          fontWeight: 500,
-                          backgroundColor: statusStyle.bg,
-                          color: statusStyle.color,
-                        }}
-                      >
-                        {getStatusLabel(court.status)}
+                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>#{court.courtId}</div>
+                      <div style={{ color: '#1a1a1a', fontWeight: 500 }}>Sân số {court.numOfIndex}</div>
+                      <div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: 20,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            backgroundColor: status.bg,
+                            color: status.color,
+                          }}
+                        >
+                          {status.label}
+                        </span>
                       </div>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button
                           onClick={() => handleOpenModal(court)}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: '#E8F4F8',
-                            color: '#185FA5',
-                            border: 'none',
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            transition: 'background 0.15s',
-                          }}
-                          onMouseEnter={(e) => {
-                            (e.target as HTMLButtonElement).style.background = '#D1E8F2';
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.target as HTMLButtonElement).style.background = '#E8F4F8';
-                          }}
+                          style={{ padding: '4px 8px', backgroundColor: '#E8F4F8', color: '#185FA5', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
                         >
                           Sửa
                         </button>
                         <button
                           onClick={() => handleDelete(court.courtId)}
                           disabled={isDeleting}
-                          style={{
-                            padding: '4px 8px',
-                            backgroundColor: '#FCEBEB',
-                            color: '#A32D2D',
-                            border: 'none',
-                            borderRadius: 4,
-                            fontSize: 11,
-                            fontWeight: 500,
-                            cursor: isDeleting ? 'not-allowed' : 'pointer',
-                            transition: 'background 0.15s',
-                            opacity: isDeleting ? 0.6 : 1,
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!isDeleting) (e.target as HTMLButtonElement).style.background = '#F4A9A9';
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isDeleting) (e.target as HTMLButtonElement).style.background = '#FCEBEB';
-                          }}
+                          style={{ padding: '4px 8px', backgroundColor: '#FCEBEB', color: '#A32D2D', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
                         >
                           Xóa
                         </button>
@@ -397,226 +314,67 @@ export default function FacilityStatus() {
               </div>
             )}
 
-            {/* Empty state */}
             {!loading && (courts?.length ?? 0) === 0 && !error && (
-              <div
-                style={{
-                  background: '#f7f7f5',
-                  borderRadius: 8,
-                  padding: '40px 16px',
-                  textAlign: 'center',
-                  border: '0.5px solid rgba(0,0,0,0.08)',
-                  color: '#888',
-                  fontSize: 13,
-                  marginTop: 16,
-                }}
-              >
-                Không có sân  nào
+              <div style={{ background: '#f7f7f5', borderRadius: 8, padding: '40px 16px', textAlign: 'center', color: '#888', fontSize: 13, marginTop: 16 }}>
+                Không tìm thấy sân nào trên hệ thống.
               </div>
             )}
           </div>
         )}
 
-        {/* Facilities Tab */}
-        {activeTab === 'facilities' && (
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: '20px',
-              border: '0.5px solid rgba(0,0,0,0.08)',
-            }}
-          >
-            <FacilityView />
-          </div>
-        )}
-
-        {/* Categories Tab */}
-        {activeTab === 'categories' && (
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: '20px',
-              border: '0.5px solid rgba(0,0,0,0.08)',
-            }}
-          >
-            <FacilityCategoryView />
-          </div>
-        )}
-
-        {/* Criteria Tab */}
-        {activeTab === 'criteria' && (
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: '20px',
-              border: '0.5px solid rgba(0,0,0,0.08)',
-            }}
-          >
-            <FacilityCriterionView />
-          </div>
-        )}
+        {activeTab === 'facilities' && <div style={{ background: '#fff', borderRadius: 12, padding: '20px' }}><FacilityView /></div>}
+        {activeTab === 'categories' && <div style={{ background: '#fff', borderRadius: 12, padding: '20px' }}><FacilityCategoryView /></div>}
+        {activeTab === 'criteria' && <div style={{ background: '#fff', borderRadius: 12, padding: '20px' }}><FacilityCriterionView /></div>}
       </div>
 
-      {/* Modal */}
+      {/* Modal Thêm/Sửa Sân */}
       {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-          }}
-          onClick={handleCloseModal}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: '24px',
-              width: '90%',
-              maxWidth: '500px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>
-              {editingCourt ? 'Sửa sân ' : 'Thêm sân  mới'}
-            </h2>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
-                Tên sân
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nhập tên sân"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  fontSize: 13,
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
-                Số sân
-              </label>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={handleCloseModal}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: '24px', width: '90%', maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 600 }}>{editingCourt ? 'Sửa thông tin sân' : 'Thêm sân mới'}</h2>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Số thứ tự sân (numOfIndex)</label>
               <input
                 type="number"
                 value={formData.numOfIndex}
-                onChange={(e) => setFormData({ ...formData, numOfIndex: e.target.value })}
-                placeholder="Nhập số sân"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  fontSize: 13,
-                  boxSizing: 'border-box',
-                }}
+                onChange={(e) => setFormData({ numOfIndex: e.target.value })}
+                placeholder="Nhập số hiệu index của sân"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '0.5px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
               />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
-                Giá / giờ (VND)
-              </label>
-              <input
-                type="number"
-                value={formData.unitPrice}
-                onChange={(e) => setFormData({ ...formData, unitPrice: e.target.value })}
-                placeholder="Nhập giá"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  fontSize: 13,
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500, color: '#1a1a1a' }}>
-                Trạng thái
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as CourtStatus })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '0.5px solid rgba(0,0,0,0.12)',
-                  fontSize: 13,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="Available">Có sẵn</option>
-                <option value="Unavailable">Không có sẵn</option>
-                <option value="Maintenance">Bảo trì</option>
-              </select>
             </div>
 
             <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button
-                onClick={handleCloseModal}
-                disabled={isSubmitting}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#e0e0e0',
-                  color: '#1a1a1a',
-                  border: 'none',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.6 : 1,
-                }}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#185FA5',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  opacity: isSubmitting ? 0.6 : 1,
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSubmitting) {
-                    (e.target as HTMLButtonElement).style.background = '#134078';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  (e.target as HTMLButtonElement).style.background = '#185FA5';
-                }}
-              >
+              <button onClick={handleCloseModal} disabled={isSubmitting} style={{ padding: '8px 16px', backgroundColor: '#e0e0e0', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>Hủy</button>
+              <button onClick={handleSubmit} disabled={isSubmitting} style={{ padding: '8px 16px', backgroundColor: '#185FA5', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
                 {isSubmitting ? 'Đang lưu...' : editingCourt ? 'Cập nhật' : 'Thêm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cấu Hình Giá Chung */}
+      {isPriceModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }} onClick={() => setIsPriceModalOpen(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: '24px', width: '90%', maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 20px 0', fontSize: 16, fontWeight: 600 }}>Cấu hình giá áp dụng chung</h2>
+            
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Giá tiền mới / giờ (VND)</label>
+              <input
+                type="number"
+                value={priceForm.newPrice}
+                onChange={(e) => setPriceForm({ newPrice: e.target.value })}
+                placeholder="Nhập mức giá mới"
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '0.5px solid rgba(0,0,0,0.12)', fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+              <button onClick={() => setIsPriceModalOpen(false)} disabled={isUpdatingPrice} style={{ padding: '8px 16px', backgroundColor: '#e0e0e0', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>Hủy</button>
+              <button onClick={handleUpdatePrice} disabled={isUpdatingPrice} style={{ padding: '8px 16px', backgroundColor: '#E67E22', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                {isUpdatingPrice ? 'Đang cập nhật...' : 'Cập nhật giá'}
               </button>
             </div>
           </div>

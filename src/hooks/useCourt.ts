@@ -5,11 +5,13 @@ import {
   addCourt,
   editCourt,
   removeCourt,
+  updateCourtPrice,
 } from '../api/court.api';
 import type {
   ICourt,
   CourtAddPayload,
   CourtEditPayload,
+  CourtPriceUpdatePayload,
 } from '../types/court.type';
 
 // ===== Courts Queries & Mutations =====
@@ -55,6 +57,17 @@ export const useRemoveCourt = () => {
 
   return useMutation<void, Error, number>({
     mutationFn: removeCourt,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['courts'] });
+    },
+  });
+};
+
+export const useUpdateCourtPrice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, CourtPriceUpdatePayload>({
+    mutationFn: updateCourtPrice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['courts'] });
     },

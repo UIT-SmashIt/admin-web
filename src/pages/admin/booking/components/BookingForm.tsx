@@ -80,7 +80,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
 
   // Get court price from selected court
   const selectedCourt = courts.find(c => c.courtId === courtIds[0]);
-  const courtPrice = selectedCourt?.unitPrice ?? 0;
+  const courtPrice = 40000;
 
   // Helper functions
   const isSlotBooked = (slot: string): boolean => {
@@ -223,7 +223,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
         <InvoiceModal
           customerName={isEditing ? order?.guestName ?? '' : ''}
           courtId={courtIds[0] ?? 1}
-          courts={courts.map(c => ({ id: c.courtId, name: c.name }))}
+          courts={courts.map(c => ({ id: c.courtId, name: `Sân ${c.courtId}` }))}
           startTime={startHour}
           endTime={endHour}
           services={services}
@@ -283,9 +283,9 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                       fontFamily: 'inherit',
                       transition: 'all 0.12s',
                     }}
-                    title={`${fmt(c.unitPrice)}đ/giờ`}
+                    title={`${fmt(40000)}đ/giờ`}
                   >
-                    {c.name}
+                    `Sân ${c.courtId}`
                   </button>
                 ))}
               </div>
