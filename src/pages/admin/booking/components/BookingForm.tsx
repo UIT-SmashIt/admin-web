@@ -285,7 +285,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                     }}
                     title={`${fmt(courtPrice)}đ/giờ`}
                   >
-                    `Sân ${c.courtId}`
+                    Sân {c.courtId}
                   </button>
                 ))}
               </div>
