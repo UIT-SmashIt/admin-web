@@ -5,6 +5,7 @@ export interface ICourt {
   courtId: number;
   numOfIndex: number;
   isMaintenance: boolean;
+  unitPrice: number;
   createdAt: string;
   updatedAt: string;
 }

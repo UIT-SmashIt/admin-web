@@ -2,7 +2,7 @@ import type {
   IProduct,
   IProductCategory,
   IProductDetail,
-  ProductAddPayload,
+  ProductAddPayload, ProductDetailAddPayload, ProductDetailEditPayload,
   ProductEditPayload
 } from "../../../../types/product.type";
 import {genId} from "../../../../utils/gen-id.ts";
@@ -14,87 +14,74 @@ import {fmt} from "../../../../utils/fmt.ts";
 import {RETAIL_UNITS, WHOLESALE_UNITS} from "../../../../const/units.const.ts";
 export type ItemModalMode = 'add' | 'edit' | null;
 
-function ProductDetailEditor({ variants, onChange, capacity, onCapacityChange }: { 
-  variants: IProductDetail[]; 
+function ProductDetailEditor({ variants, onChange }: {
+  variants: IProductDetail[];
   onChange: (v: IProductDetail[]) => void;
-  capacity: string;
-  onCapacityChange: (c: string) => void;
 }) {
   const addVariant = () => {
     const hasRetail = variants.some(v => v.saleType === 'Retail');
-    onChange([...variants, { 
-      productDetailId: genId(), 
-      unit: '', 
-      unitPrice: 0, 
-      saleType: hasRetail ? "Wholesale" : "Retail", 
-      quantity: 0,
+    onChange([...variants, {
+      productDetailId: genId(),
+      unit: '',
+      unitPrice: 0,
+      saleType: hasRetail ? "Wholesale" : "Retail",
+      capacity: 0,
       barcode: ''
     }]);
   };
   const remove = (id: number | undefined) => onChange(variants.filter(v => v.productDetailId !== id));
   const setF = <K extends keyof IProductDetail>(id: number | undefined, k: K, val: IProductDetail[K]) =>
     onChange(variants.map(v => v.productDetailId === id ? { ...v, [k]: val } : v));
-  
+
   const getUnitList = (saleType: string) => saleType === 'Retail' ? RETAIL_UNITS : WHOLESALE_UNITS;
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <label style={{ fontSize: 11.5, color: '#999', fontWeight: 600, textTransform: 'uppercase' as const }}>Dung tích / Quy cách & Đơn vị <span style={{ color: '#D4840A' }}>*</span></label>
-      </div>
-      
-      {/* Capacity field */}
-      <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #f0f0f0' }}>
-        <input 
-          value={capacity} 
-          onChange={e => onCapacityChange(e.target.value)} 
-          placeholder="VD: 500ml, 12 chai/thùng, kích cỡ lớn..." 
-          style={getInpStyle(!!capacity)}
-          onFocus={focusOrange} 
-          onBlur={blurGray}
-        />
+        <label style={{ fontSize: 11.5, color: '#999', fontWeight: 600, textTransform: 'uppercase' as const }}>
+          Dung tích / Quy cách & Đơn vị <span style={{ color: '#D4840A' }}>*</span>
+        </label>
       </div>
 
       {variants.length === 0 && (
-        <div style={{ padding: '12px', borderRadius: 9, background: '#fafafa', border: '1px dashed #e0e0e0', textAlign: 'center', fontSize: 12.5, color: '#bbb' }}>Nhấn "+ Thêm đơn vị" để thêm</div>
+        <div style={{ padding: '12px', borderRadius: 9, background: '#fafafa', border: '1px dashed #e0e0e0', textAlign: 'center', fontSize: 12.5, color: '#bbb' }}>
+          Nhấn "+ Thêm đơn vị" để thêm
+        </div>
       )}
-      
+
       {variants.map((v, idx) => (
-        <div key={v.productDetailId} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #f5f5f5' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8, alignItems: 'center' }}>
-            {/* Barcode */}
-            <div>
-              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>Mã vạch</label>
-              <input 
-                type="text" 
-                value={v.barcode || ''} 
-                onChange={e => setF(v.productDetailId, 'barcode', e.target.value)} 
-                placeholder="Mã vạch sản phẩm"
-                style={getInpStyle(!!v.barcode)}
-                onFocus={focusOrange}
-                onBlur={blurGray}
-              />
-            </div>
-            
+        <div
+          key={v.productDetailId}
+          style={{
+            marginBottom: 12,
+            padding: 12,
+            borderRadius: 12,
+            border: '1px solid #f0f0f0',
+            background: '#fff',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
             {/* Sale Type selector */}
-            <div>
-              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>Loại bán</label>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Loại bán
+              </label>
               <div style={{ display: 'flex', gap: 6 }}>
                 {Object.values(SaleType).map(t => (
-                  <button 
-                    key={t} 
+                  <button
+                    key={t}
                     onClick={() => setF(v.productDetailId, 'saleType', t)}
                     disabled={t === 'Retail' && variants.some((vt, tidx) => tidx !== idx && vt.saleType === 'Retail')}
                     style={{
-                      flex: 1, 
-                      padding: '8px 0', 
-                      borderRadius: 8, 
-                      fontSize: 12, 
-                      fontFamily: 'inherit', 
+                      flex: 1,
+                      padding: '8px 0',
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontFamily: 'inherit',
                       cursor: 'pointer',
                       border: `1.5px solid ${v.saleType === t ? '#D4840A' : '#e0e0e0'}`,
                       background: v.saleType === t ? '#FFF3E0' : '#fafafa',
-                      color: v.saleType === t ? '#D4840A' : '#666', 
+                      color: v.saleType === t ? '#D4840A' : '#666',
                       fontWeight: v.saleType === t ? 700 : 400,
                     }}
                   >
@@ -103,87 +90,134 @@ function ProductDetailEditor({ variants, onChange, capacity, onCapacityChange }:
                 ))}
               </div>
             </div>
+
+            {/* Delete button */}
+            <button
+              onClick={() => remove(v.productDetailId)}
+              disabled={variants.length <= 1}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: 'none',
+                flexShrink: 0,
+                background: variants.length <= 1 ? '#f5f5f5' : '#FFF5F5',
+                color: variants.length <= 1 ? '#ccc' : '#A32D2D',
+                cursor: variants.length <= 1 ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 18,
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+                <path d="M10 11v6M14 11v6M9 6V4h6v2" />
+              </svg>
+            </button>
           </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1.4fr auto', gap: 8, alignItems: 'center' }}>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            {/* Capacity field */}
+            <div>
+              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Dung tích / Quy cách
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={v.capacity || ''}
+                onChange={e => setF(v.productDetailId, 'capacity', +e.target.value)}
+                placeholder="VD: 500, 12..."
+                style={getInpStyle(v.capacity > 0)}
+                onFocus={focusOrange}
+                onBlur={blurGray}
+              />
+            </div>
+
+            {/* Barcode */}
+            <div>
+              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Mã vạch
+              </label>
+              <input
+                type="text"
+                value={v.barcode || ''}
+                onChange={e => setF(v.productDetailId, 'barcode', e.target.value)}
+                placeholder="Mã vạch sản phẩm"
+                style={getInpStyle(!!v.barcode)}
+                onFocus={focusOrange}
+                onBlur={blurGray}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {/* Unit selector */}
             <div>
-              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>Đơn vị</label>
-              <select 
-                value={v.unit} 
-                onChange={e => setF(v.productDetailId, 'unit', e.target.value)} 
-                onFocus={focusOrange} 
+              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Đơn vị
+              </label>
+              <select
+                value={v.unit}
+                onChange={e => setF(v.productDetailId, 'unit', e.target.value)}
+                onFocus={focusOrange}
                 onBlur={blurGray}
                 style={{ ...getInpStyle(!!v.unit), appearance: 'none' as const, padding: '9px 10px' }}
               >
                 <option value="">Chọn đơn vị</option>
-                {getUnitList(v.saleType).map(u => <option key={u} value={u}>{u}</option>)}
+                {getUnitList(v.saleType).map(u => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
               </select>
             </div>
-            
+
             {/* Unit Price */}
             <div>
-              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>Giá bán</label>
+              <label style={{ fontSize: 10.5, color: '#999', display: 'block', marginBottom: 4, fontWeight: 500 }}>
+                Giá bán
+              </label>
               <div style={{ position: 'relative' }}>
-                <input 
-                  type="number" 
-                  min={0} 
-                  value={v.unitPrice || ''} 
+                <input
+                  type="number"
+                  min={0}
+                  value={v.unitPrice || ''}
                   onChange={e => setF(v.productDetailId, 'unitPrice', +e.target.value)}
-                  placeholder="Giá bán" 
-                  style={{ ...getInpStyle(v.unitPrice > 0), paddingRight: 28 }} 
-                  onFocus={focusOrange} 
-                  onBlur={blurGray} 
+                  placeholder="Giá bán"
+                  style={{ ...getInpStyle(v.unitPrice > 0), paddingRight: 28 }}
+                  onFocus={focusOrange}
+                  onBlur={blurGray}
                 />
-                <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#aaa', pointerEvents: 'none' }}>đ</span>
+                <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#aaa', pointerEvents: 'none' }}>
+                  đ
+                </span>
               </div>
-            </div>
-            
-            {/* Delete button */}
-            <div>
-              <button 
-                onClick={() => remove(v.productDetailId)} 
-                disabled={variants.length <= 1} 
-                style={{
-                  width: 36, 
-                  height: 36, 
-                  borderRadius: 8, 
-                  border: 'none', 
-                  flexShrink: 0,
-                  background: variants.length <= 1 ? '#f5f5f5' : '#FFF5F5',
-                  color: variants.length <= 1 ? '#ccc' : '#A32D2D',
-                  cursor: variants.length <= 1 ? 'default' : 'pointer',
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center',
-                  marginTop: 24
-                }}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6M9 6V4h6v2" /></svg>
-              </button>
             </div>
           </div>
         </div>
       ))}
-      
+
       {/* Add more units button */}
-      <button 
-        onClick={addVariant} 
-        style={{ 
-          fontSize: 12, 
-          color: '#D4840A', 
-          background: 'none', 
-          border: 'none', 
-          cursor: 'pointer', 
-          fontFamily: 'inherit', 
-          fontWeight: 600, 
-          display: 'flex', 
-          alignItems: 'center', 
+      <button
+        onClick={addVariant}
+        style={{
+          fontSize: 12,
+          color: '#D4840A',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
           gap: 4,
-          padding: '8px 0'
+          padding: '8px 0',
         }}
       >
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
         Thêm {variants.some(v => v.saleType === 'Retail') ? 'loại khác' : 'đơn vị'}
       </button>
     </div>
@@ -200,10 +234,9 @@ export function ProductEditor({ mode, item, categories, onAdd, onEdit, onClose }
 }) {
   const [name, setName] = useState(item?.productName ?? '');
   const [category, setCategory] = useState(item?.categoryId ?? (categories[0]?.productCategoryId ?? 0));
-  const [capacity, setCapacity] = useState(item?.capacity ?? '');
   const [details, setDetails] = useState<IProductDetail[]>(
     item?.details.length ? item.details.map(v => ({ ...v }))
-      : [{ productDetailId: genId(), unit: '', unitPrice: 0, saleType: "Retail", quantity: 0, barcode: '' }]
+      : [{ productDetailId: genId(), unit: '', unitPrice: 0, saleType: "Retail", capacity: 0, barcode: '' }]
   );
 
   const canSave = name.trim().length > 0 && details.length > 0 && details.every(v => v.unit) && details.some(v => v.saleType === 'Retail');
@@ -211,9 +244,30 @@ export function ProductEditor({ mode, item, categories, onAdd, onEdit, onClose }
   const handleSave = () => {
     if (!canSave) return;
     if (mode === 'add') {
-      onAdd({ productName: name.trim(), categoryId: category, capacity, details });
+      const productDetailPayloads: ProductDetailAddPayload[] = details.map(detail => ({
+        barcode: detail.barcode || undefined,
+        unit: detail.unit,
+        unitPrice: detail.unitPrice,
+        saleType: detail.saleType,
+        capacity: detail.capacity,
+      }));
+      const payload: ProductAddPayload = {
+        productName: name.trim(),
+        categoryId: category,
+        details: productDetailPayloads,
+      };
+      onAdd(payload);
     } else if (mode === 'edit' && item) {
-      onEdit({ productId: item.productId, productName: name.trim(), categoryId: category, capacity, details})
+      const productDetailPayloads: ProductDetailEditPayload[] = details.map(detail => ({
+        productDetailId: detail.productDetailId,
+        productId: item.productId,
+        barcode: detail.barcode || undefined,
+        unit: detail.unit,
+        unitPrice: detail.unitPrice,
+        saleType: detail.saleType,
+        capacity: detail.capacity,
+      }));
+      onEdit({ productId: item.productId, productName: name.trim(), categoryId: category, capacity: 0, details: productDetailPayloads })
     }
 
     onClose();
@@ -248,24 +302,22 @@ export function ProductEditor({ mode, item, categories, onAdd, onEdit, onClose }
               ))}
             </div>
           </div>
-          
+
           {/* Variants */}
-          <ProductDetailEditor 
-            variants={details} 
+          <ProductDetailEditor
+            variants={details}
             onChange={setDetails}
-            capacity={capacity}
-            onCapacityChange={setCapacity}
           />
-          
+
           {/* Preview */}
           {name && details.some(v => v.unit && v.unitPrice > 0) && (
             <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FFFBF5', border: '1px solid #FAEEDA' }}>
               <div style={{ fontSize: 10.5, color: '#D4840A', fontWeight: 600, marginBottom: 5 }}>XEM TRƯỚC</div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1a1a1a', marginBottom: 5 }}>{name}{capacity ? ` (${capacity})` : ''}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#1a1a1a', marginBottom: 5 }}>{name}</div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
                 {details.filter(v => v.unit && v.unitPrice > 0).map(v => (
                   <span key={v.productDetailId} style={{ fontSize: 11.5, background: '#fff', border: '1px solid #FAEEDA', borderRadius: 6, padding: '2px 8px', color: '#555' }}>
-                    {v.unit} · {fmt(v.unitPrice)}đ · {v.saleType === 'Retail' ? 'Lẻ' : 'Sỉ'}{v.barcode ? ` (${v.barcode})` : ''}
+                    {v.capacity ? `${v.capacity} · ` : ''}{v.unit} · {fmt(v.unitPrice)}đ · {v.saleType === 'Retail' ? 'Lẻ' : 'Sỉ'}{v.barcode ? ` (${v.barcode})` : ''}
                   </span>
                 ))}
               </div>

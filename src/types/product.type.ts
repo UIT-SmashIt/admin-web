@@ -19,7 +19,7 @@ export interface IProductDetail {
   unit: string;
   unitPrice: number;
   saleType: SaleType;
-  capacity: string;
+  capacity: number;
 }
 
 export interface IProductImport {
@@ -34,17 +34,32 @@ export interface IProductImport {
 
 export interface ProductAddPayload {
   productName: string;
-  capacity: string;
   categoryId: number;
-  details: IProductDetail[];
+  details: ProductDetailAddPayload[];
+}
+
+export interface ProductDetailAddPayload {
+  barcode?: string;
+  unit: string;
+  unitPrice: number;
+  saleType: SaleType;
+  capacity: number;
 }
 
 export interface ProductEditPayload {
   productId: number;
   productName: string;
-  capacity: string;
+  capacity: number;
   categoryId: number;
-  details: IProductDetail[];
+  details: ProductDetailEditPayload[];
+}
+
+export interface ProductDetailEditPayload {
+  productDetailId: number;
+  barcode?: string;
+  unit: string;
+  unitPrice: number;
+  saleType: SaleType;
 }
 
 export interface ProductEditQuantityPayload {

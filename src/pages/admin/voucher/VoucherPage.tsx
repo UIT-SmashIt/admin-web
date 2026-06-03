@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useFetchPromotions, useDeletePromotion } from '/Users/NAT/DA2/admin-web/src/hooks/usePromotion.ts';
 import PromotionModal from './components/PromotionModal';
-import PromotionListView from '/Users/NAT/DA2/admin-web/src/pages/admin/voucher/components/PromotionListView';
-import type { IPromotion } from '/Users/NAT/DA2/admin-web/src/types/promotion.type.ts';
+import {PromotionListView} from "./index.ts";
+import type {IPromotion} from "../../../types/promotion.type.ts";
+import {useDeletePromotion, useFetchPromotions} from "../../../hooks/usePromotion.ts";
 
 export default function VoucherPage() {
   const { data: promotions = [], isLoading } = useFetchPromotions();

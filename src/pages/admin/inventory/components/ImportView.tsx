@@ -56,7 +56,7 @@ export function ImportView({ items, onBack, onImport }: {
                           }}>
                     <div>
                       <div style={{ fontSize: 13.5, fontWeight: selItemId === item.productId ? 600 : 400, color: selItemId === item.productId ? '#D4840A' : '#1a1a1a', textAlign: 'left' as const }}>{item.productName}</div>
-                      {item.capacity && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{item.capacity}</div>}
+                      {item.quantity && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{item.quantity}</div>}
                     </div>
                     <div style={{ fontSize: 11, color: '#bbb' }}>{item.details.map(v => v.unit).join(' / ')}</div>
                   </button>
@@ -76,7 +76,7 @@ export function ImportView({ items, onBack, onImport }: {
                   background: selVariantId === v.productDetailId ? '#FFF3E0' : '#fafafa',
                   color: selVariantId === v.productDetailId ? '#D4840A' : '#666', fontWeight: selVariantId === v.productDetailId ? 700 : 400,
                 }}>
-                  {v.unit}<br /><span style={{ fontSize: 10.5 }}>{fmt(v.unitPrice)}đ · Tồn {v.quantity}</span>
+                  {/*{v.unit}<br /><span style={{ fontSize: 10.5 }}>{fmt(v.unitPrice)}đ · Tồn {v.quantity}</span>*/}
                 </button>
               ))}
             </div>
@@ -91,7 +91,7 @@ export function ImportView({ items, onBack, onImport }: {
             <div style={{ fontWeight: 600, color: '#1a1a1a', marginBottom: 3 }}>{selItem?.productName}</div>
             <div style={{ color: '#666' }}>Đơn vị: <strong>{selVariant.unit}</strong></div>
             <div style={{ color: '#666' }}>Giá: <strong>{fmt(selVariant.unitPrice)}đ</strong></div>
-            <div style={{ color: '#666' }}>Tồn hiện tại: <strong style={{ color: selVariant.quantity < 10 ? '#A32D2D' : '#22863a' }}>{selVariant.quantity}</strong></div>
+            {/*<div style={{ color: '#666' }}>Tồn hiện tại: <strong style={{ color: selVariant.quantity < 10 ? '#A32D2D' : '#22863a' }}>{selVariant.quantity}</strong></div>*/}
           </div>
         )}
         <div>
@@ -104,11 +104,11 @@ export function ImportView({ items, onBack, onImport }: {
           <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Ghi chú nhập hàng..."
                     style={{ ...getInpStyle(!!note), resize: 'none' as const, lineHeight: 1.5 }} onFocus={focusOrange} onBlur={blurGray} />
         </div>
-        {selVariant && qty && +qty > 0 && (
+        {/*{selVariant && qty && +qty > 0 && (
           <div style={{ padding: '8px 12px', borderRadius: 9, background: '#F0FDF4', border: '1px solid #BBF7D0', fontSize: 12.5, color: '#166534' }}>
             Sau nhập: <strong>{selVariant.quantity + +qty} {selVariant.unit}</strong>
           </div>
-        )}
+        )}*/}
         <div style={{ flex: 1 }} />
         <button onClick={handleSubmit} disabled={!canSubmit} style={{
           padding: '13px', borderRadius: 10, border: 'none',

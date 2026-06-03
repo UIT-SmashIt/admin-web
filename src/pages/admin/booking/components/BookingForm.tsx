@@ -80,7 +80,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
 
   // Get court price from selected court
   const selectedCourt = courts.find(c => c.courtId === courtIds[0]);
-  const courtPrice = 40000;
+  const courtPrice = selectedCourt?.unitPrice ?? 40000;
 
   // Helper functions
   const isSlotBooked = (slot: string): boolean => {
@@ -283,7 +283,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
                       fontFamily: 'inherit',
                       transition: 'all 0.12s',
                     }}
-                    title={`${fmt(40000)}đ/giờ`}
+                    title={`${fmt(courtPrice)}đ/giờ`}
                   >
                     `Sân ${c.courtId}`
                   </button>

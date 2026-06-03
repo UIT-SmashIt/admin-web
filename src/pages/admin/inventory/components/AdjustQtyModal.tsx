@@ -12,7 +12,7 @@ export function AdjustQtyModal({ item, onSave, onClose }: {
   const [mode, setMode] = useState<'+' | '-'>('+');
   const [delta, setDelta] = useState(0);
   const variant = item.details.find(v => v.productDetailId === selVariantId);
-  const newQty = variant ? Math.max(0, variant.quantity + (mode === '+' ? delta : -delta)) : 0;
+  const newQty = variant ? Math.max(0, variant.capacity + (mode === '+' ? delta : -delta)) : 0;
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 250, background: 'rgba(0,0,0,0.42)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -37,7 +37,7 @@ export function AdjustQtyModal({ item, onSave, onClose }: {
                     background: selVariantId === v.productDetailId ? '#FFF3E0' : '#fafafa',
                     color: selVariantId === v.productDetailId ? '#D4840A' : '#666', fontWeight: selVariantId === v.productDetailId ? 700 : 400,
                   }}>
-                    {v.unit}<br /><span style={{ fontSize: 10.5, opacity: 0.8 }}>Tồn: {v.quantity}</span>
+                    {v.unit}<br /><span style={{ fontSize: 10.5, opacity: 0.8 }}>Tồn: {v.capacity}</span>
                   </button>
                 ))}
               </div>
@@ -48,13 +48,13 @@ export function AdjustQtyModal({ item, onSave, onClose }: {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <div style={{ flex: 1, padding: '12px', borderRadius: 10, background: '#fafafa', border: '1px solid #f0f0ee', textAlign: 'center' as const }}>
                 <div style={{ fontSize: 10.5, color: '#aaa', marginBottom: 3 }}>Hiện tại</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a' }}>{variant.quantity}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a1a' }}>{variant.capacity}</div>
                 <div style={{ fontSize: 11, color: '#aaa' }}>{variant.unit}</div>
               </div>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
-              <div style={{ flex: 1, padding: '12px', borderRadius: 10, textAlign: 'center' as const, background: newQty !== variant.quantity ? '#FFF3E0' : '#fafafa', border: `1px solid ${newQty !== variant.quantity ? '#FAEEDA' : '#f0f0ee'}` }}>
+              <div style={{ flex: 1, padding: '12px', borderRadius: 10, textAlign: 'center' as const, background: newQty !== variant.capacity ? '#FFF3E0' : '#fafafa', border: `1px solid ${newQty !== variant.capacity ? '#FAEEDA' : '#f0f0ee'}` }}>
                 <div style={{ fontSize: 10.5, color: '#aaa', marginBottom: 3 }}>Sau điều chỉnh</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: newQty < variant.quantity ? '#A32D2D' : newQty > variant.quantity ? '#22863a' : '#1a1a1a' }}>{newQty}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: newQty < variant.capacity ? '#A32D2D' : newQty > variant.capacity ? '#22863a' : '#1a1a1a' }}>{newQty}</div>
                 <div style={{ fontSize: 11, color: '#aaa' }}>{variant.unit}</div>
               </div>
             </div>

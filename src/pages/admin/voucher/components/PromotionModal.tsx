@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useAddPromotion, useEditPromotion } from '/Users/NAT/DA2/admin-web/src/hooks/usePromotion.ts';
-import type { IPromotion, IPromotionDetail } from '/Users/NAT/DA2/admin-web/src/types/promotion.type.ts';
+import type {IPromotion, IPromotionDetail} from "../../../../types/promotion.type.ts";
+import {useAddPromotion, useEditPromotion} from "../../../../hooks/usePromotion.ts";
+
 
 interface Props {
   mode: 'add' | 'edit' | 'view';

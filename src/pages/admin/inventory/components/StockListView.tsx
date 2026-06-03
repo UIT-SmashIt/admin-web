@@ -29,8 +29,8 @@ export function StockListView({ items, categories, onImport, onShowHistory, onAd
     return m;
   }, [items, search, activeCatFilter]);
 
-  const totalUnits = items.reduce((s, i) => s + i.details.reduce((vs, v) => vs + v.quantity, 0), 0);
-  const lowStockCount = items.filter(i => i.details.some(v => v.quantity < 5)).length;
+  // const totalUnits = items.reduce((s, i) => s + i.details.reduce((vs, v) => vs + v.quantity, 0), 0);
+  // const lowStockCount = items.filter(i => i.details.some(v => v.quantity < 5)).length;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', overflow: 'hidden' }}>
@@ -47,11 +47,11 @@ export function StockListView({ items, categories, onImport, onShowHistory, onAd
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#fafafa'; }}>
           🗂️ Danh mục
         </button>
-        {lowStockCount > 0 && (
+        {/*{lowStockCount > 0 && (
           <div style={{ fontSize: 11.5, background: '#FFF5F5', color: '#A32D2D', padding: '5px 10px', borderRadius: 8, fontWeight: 500, border: '1px solid #FECDD3' }}>
             ⚠️ {lowStockCount} mặt hàng sắp hết
           </div>
-        )}
+        )}*/}
         <div style={{ flex: 1 }} />
         <div style={{ position: 'relative' }}>
           <svg style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2"><circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" /></svg>
@@ -79,7 +79,7 @@ export function StockListView({ items, categories, onImport, onShowHistory, onAd
           );
         })}
         <div style={{ marginLeft: 'auto', fontSize: 12, color: '#aaa', flexShrink: 0, display: 'flex', gap: 10 }}>
-          <span>Tổng tồn: <strong style={{ color: '#D4840A' }}>{totalUnits}</strong></span>
+          {/*<span>Tổng tồn: <strong style={{ color: '#D4840A' }}>{totalUnits}</strong></span>*/}
           <span>·</span>
           <span><strong>{items.length}</strong> mặt hàng</span>
         </div>
@@ -115,18 +115,18 @@ export function StockListView({ items, categories, onImport, onShowHistory, onAd
                   <tr key={`${item.productId}-${v.productDetailId}`} style={{ borderBottom: '0.5px solid #f5f5f3' }}
                       onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#fafaf8'}
                       onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}>
-                    <td style={{ padding: '10px 12px', paddingLeft: vi === 0 ? 20 : 34 }}>
+                    {/*<td style={{ padding: '10px 12px', paddingLeft: vi === 0 ? 20 : 34 }}>
                       {vi === 0 ? (
                         <div>
                           <div style={{ fontSize: 13.5, fontWeight: 500, color: '#1a1a1a' }}>{item.productName}</div>
                           {item.capacity && <div style={{ fontSize: 11, color: '#aaa', marginTop: 1 }}>{item.capacity}</div>}
                         </div>
                       ) : null}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                    </td>*/}
+                    {/*<td style={{ padding: '10px 12px', textAlign: 'center' }}>
                       <span style={{ fontWeight: 700, color: v.quantity < 5 ? '#A32D2D' : v.quantity < 15 ? '#D4840A' : '#22863a', fontSize: 13.5 }}>{v.quantity}</span>
                       {v.quantity < 5 && <div style={{ fontSize: 9.5, color: '#A32D2D', fontWeight: 500, marginTop: 1 }}>Sắp hết</div>}
-                    </td>
+                    </td>*/}
                     <td style={{ padding: '10px 12px', textAlign: 'center', color: '#666', fontSize: 12.5 }}>{v.unit || '—'}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 500, color: v.unitPrice ? '#1a1a1a' : '#ccc', fontSize: 13 }}>{v.unitPrice ? fmt(v.unitPrice) + 'đ' : '—'}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
