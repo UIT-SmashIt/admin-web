@@ -2,6 +2,7 @@ export interface IPromotion {
   promotionId: number;
   title: string;
   description: string;
+  condition: string;
   startDate: string;
   endDate: string;
   hidden: boolean;
@@ -17,6 +18,7 @@ export interface IPromotionDetail {
 export interface PromotionAddPayload {
   title: string;
   description: string;
+  condition: string;
   startDate: string;
   endDate: string;
   hidden: boolean;

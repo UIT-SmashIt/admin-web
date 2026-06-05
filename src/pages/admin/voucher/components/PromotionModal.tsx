@@ -1,12 +1,129 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type {IPromotion, IPromotionDetail} from "../../../../types/promotion.type.ts";
 import {useAddPromotion, useEditPromotion} from "../../../../hooks/usePromotion.ts";
+import Editor from '@monaco-editor/react';
 
 
 interface Props {
   mode: 'add' | 'edit' | 'view';
   promotion: IPromotion | null;
   onClose: () => void;
+}
+
+interface JsonInputEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function JsonInputEditor({ value, onChange }: JsonInputEditorProps) {
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleEditorChange = (value?: string) => {
+    onChange(value ?? '');
+    setMessage(null);
+  };
+
+  const handleSubmit = () => {
+    try {
+      const parsedJson = JSON.parse(value);
+      console.log("JSON hợp lệ:", parsedJson);
+      setMessage({ type: 'success', text: 'Cấu hình chuẩn xác!' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: `JSON lỗi cú pháp: ${error instanceof Error ? error.message : 'Không xác định'}`,
+      });
+    }
+  };
+
+  return (
+    <div
+      style={{
+        border: '1.5px solid #e8e8e8',
+        borderRadius: 12,
+        background: '#fff',
+        overflow: 'hidden',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.04)',
+      }}
+    >
+      <div
+        style={{
+          padding: '10px 13px',
+          borderBottom: '1px solid #f0f0ee',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#fafafa',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a1a1a' }}>
+            JSON điều kiện
+          </div>
+          <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+            Nhập cấu hình áp dụng promotion theo định dạng JSON
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          style={{
+            padding: '7px 12px',
+            borderRadius: 8,
+            border: 'none',
+            background: '#D4840A',
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: 12,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            boxShadow: '0 4px 12px rgba(212,132,10,0.22)',
+          }}
+        >
+          Áp dụng
+        </button>
+      </div>
+
+      <div style={{ borderBottom: message ? '1px solid #f0f0ee' : 'none' }}>
+        <Editor
+          height="260px"
+          defaultLanguage="json"
+          theme="light"
+          value={value}
+          onChange={handleEditorChange}
+          options={{
+            minimap: { enabled: false },
+            fontSize: 13,
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            lineHeight: 21,
+            formatOnPaste: true,
+            formatOnType: true,
+            autoClosingBrackets: "always",
+            scrollBeyondLastLine: false,
+            padding: { top: 12, bottom: 12 },
+            overviewRulerBorder: false,
+            hideCursorInOverviewRuler: true,
+          }}
+        />
+      </div>
+
+      {message && (
+        <div
+          style={{
+            padding: '9px 13px',
+            fontSize: 12,
+            fontWeight: 600,
+            color: message.type === 'success' ? '#22863a' : '#d32f2f',
+            background: message.type === 'success' ? '#f0fff4' : '#fff5f5',
+          }}
+        >
+          {message.type === 'success' ? '✅ ' : '⚠️ '}
+          {message.text}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function PromotionModal({ mode, promotion, onClose }: Props) {
@@ -17,6 +134,7 @@ export default function PromotionModal({ mode, promotion, onClose }: Props) {
   const [form, setForm] = useState({
     title: promotion?.title ?? '',
     description: promotion?.description ?? '',
+    condition: JSON.stringify(promotion?.condition, null, 2) ?? '{\n  "type": "AND",\n  "children": []\n}',
     startDate: promotion?.startDate ?? '',
     endDate: promotion?.endDate ?? '',
     hidden: promotion?.hidden ?? false,
@@ -63,6 +181,7 @@ export default function PromotionModal({ mode, promotion, onClose }: Props) {
     if (mode === 'add') {
       addPromotion({
         ...form,
+        condition: JSON.parse(form.condition),
         details: form.details.map((d: IPromotionDetail) => ({ ...d, promotionDetailId: 0 })),
       });
     } else if (mode === 'edit' && promotion) {
@@ -230,6 +349,16 @@ export default function PromotionModal({ mode, promotion, onClose }: Props) {
                   style={{ ...inp, minHeight: 80, resize: 'none' }}
                   onFocus={e => (e.target.style.borderColor = '#D4840A')}
                   onBlur={e => (e.target.style.borderColor = '#e8e8e8')}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, color: '#999', display: 'block', marginBottom: 5, fontWeight: 600 }}>
+                  CẤU HÌNH ĐIỀU KIỆN
+                </label>
+                <JsonInputEditor
+                  value={form.condition}
+                  onChange={value => set('condition', value)}
                 />
               </div>
 

@@ -26,12 +26,11 @@ export default function BookingPage() {
   };
 
   const handleAddOrder = async (data: any) => {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<AdminOrder>((resolve, reject) => {
       createOrder(data, {
-        onSuccess: () => {
+        onSuccess: createdOrder => {
           showToast('✓ Đặt lịch thành công!');
-          setView('list');
-          resolve();
+          resolve(createdOrder);
         },
         onError: (error: any) => {
           showToast('✗ Lỗi: ' + (error?.message || 'Không thể đặt lịch'));

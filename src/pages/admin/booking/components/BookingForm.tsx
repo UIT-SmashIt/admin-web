@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useFetchProducts } from '../../../../hooks/useProduct';
 import { useFetchCourts } from '../../../../hooks/useCourt';
-import { useFetchCourtSchedule } from '../../../../hooks/useOrder';
+import {useCalculatePayment, useFetchCourtSchedule} from '../../../../hooks/useOrder';
 import { ServicesModal } from './ServicesModal';
 import { InvoiceModal } from './InvoiceModal';
 import type { ICourt } from '../../../../types/court.type';
-import type { AdminOrder, CourtScheduleSlot } from '../../../../types/order.type';
+import type {AdminOrder, CourtScheduleSlot, PaymentCalculateResponse} from '../../../../types/order.type';
 
 interface SelectedService {
   service: {
@@ -21,7 +21,7 @@ interface SelectedService {
 
 interface BookingFormProps {
   onBack: () => void;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: any) => Promise<AdminOrder | void>;
   loading?: boolean;
   order?: AdminOrder;
   isEditing?: boolean;
@@ -47,6 +47,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const { data: products = [], isLoading: productsLoading } = useFetchProducts();
   const { data: courts = [] } = useFetchCourts();
   const { mutate: fetchSchedule } = useFetchCourtSchedule();
+  const { mutate: calculatePayment, isPending: isCalculatingPayment } = useCalculatePayment();
   
   const [courtIds, setCourtIds] = useState<number[]>(order?.courtIds ?? [courts[0]?.courtId ?? 1]);
   const [date, setDate] = useState(order?.orderDate ?? '');
@@ -56,6 +57,7 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
   const [showInvoice, setShowInvoice] = useState(false);
   const [bookedSlots, setBookedSlots] = useState<CourtScheduleSlot[]>([]);
   const [error, setError] = useState<string>('');
+  const [paymentCalculation, setPaymentCalculation] = useState<PaymentCalculateResponse | null>(null);
 
   // Load booked slots when date or court changes
   useEffect(() => {
@@ -214,6 +216,68 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
     color: '#1a1a1a', background: '#fff', outline: 'none', transition: 'border-color 0.15s',
   };
 
+  const handleReserve = async () => {
+    if (!canSubmit || loading || isCalculatingPayment) return;
+
+    if (isTimeInPast()) {
+      setError('Không thể đặt ở quá khứ. Vui lòng chọn ngày và giờ trong tương lai.');
+      return;
+    }
+
+    if (hasBookingConflict()) {
+      setError('Khoảng thời gian này có xung đột với lịch đã đặt. Vui lòng chọn khung giờ khác.');
+      return;
+    }
+
+    const orderData: any = {
+      orderDate: date,
+      startHour: `${startHour}:00`,
+      endHour: `${endHour}:00`,
+      courtIds,
+    };
+
+    if (services.length > 0) {
+      orderData.productDetails = services.map(s => ({
+        productId: s.service.id,
+        productCategoryId: s.service.category,
+        quantity: s.qty,
+      }));
+    }
+
+    try {
+      const createdOrder = await onSubmit(orderData);
+
+      if (!createdOrder?.courtOrderId) {
+        setError('Không tìm thấy mã đơn để tính tạm tính');
+        return;
+      }
+
+      calculatePayment(
+        {
+          id: createdOrder.courtOrderId,
+          payload: {
+            givenAmount: 0,
+            paymentMethod: 'CASH',
+          },
+        },
+        {
+          onSuccess: data => {
+            setPaymentCalculation(data);
+            setError('');
+          },
+          onError: calcError => {
+            setPaymentCalculation(null);
+            setError(calcError.message || 'Không thể tính tạm tính thanh toán');
+          },
+        }
+      );
+    } catch (submitError) {
+      console.error('Submit error:', submitError);
+      setPaymentCalculation(null);
+      setError('Có lỗi xảy ra khi tạo đơn hàng');
+    }
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: "'Be Vietnam Pro', sans-serif" }}>
       {showServices && (
@@ -354,18 +418,55 @@ export function BookingForm({ onBack, onSubmit, loading = false, order, isEditin
           </div>
         )}
 
+        {paymentCalculation && (
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#FFF7ED', border: '1px solid #FDE68A', fontSize: 12.5 }}>
+            <div style={{ color: '#B45309', marginBottom: 8, fontWeight: 700 }}>
+              Tạm tính từ hệ thống
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555' }}>
+                <span>Tổng trước giảm</span>
+                <span style={{ fontWeight: 600 }}>{fmt(paymentCalculation.totalBeforeDiscount)}đ</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#22863a' }}>
+                <span>Giảm giá</span>
+                <span style={{ fontWeight: 600 }}>-{fmt(paymentCalculation.totalDiscount)}đ</span>
+              </div>
+
+              <div style={{ borderTop: '1px dashed #FDE68A', paddingTop: 6, marginTop: 2, display: 'flex', justifyContent: 'space-between', color: '#D4840A', fontWeight: 800, fontSize: 14 }}>
+                <span>Thành tiền</span>
+                <span>{fmt(paymentCalculation.totalAmount)}đ</span>
+              </div>
+
+              {paymentCalculation.promotionDescription && (
+                <div style={{ marginTop: 4, padding: '8px 10px', borderRadius: 8, background: '#fff', color: '#B45309', fontSize: 12, fontWeight: 600 }}>
+                  🎁 {paymentCalculation.promotionDescription}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div style={{ flex: 1 }} />
 
         <input
           type="button"
-          onClick={() => canSubmit && setShowInvoice(true)}
-          disabled={!canSubmit || loading}
-          value={loading ? '⏳ Đang xử lý...' : isEditing ? 'Cập nhật' : 'Đặt trước'}
+          onClick={isEditing ? () => canSubmit && setShowInvoice(true) : handleReserve}
+          disabled={!canSubmit || loading || isCalculatingPayment}
+          value={
+            loading || isCalculatingPayment
+              ? '⏳ Đang xử lý...'
+              : isEditing
+                ? 'Cập nhật'
+                : 'Đặt trước'
+          }
           style={{
             padding: '13px', borderRadius: 10, border: 'none',
-            background: canSubmit && !loading ? '#D4840A' : '#e0e0e0',
+            background: canSubmit && !loading && !isCalculatingPayment ? '#D4840A' : '#e0e0e0',
             color: '#fff', fontWeight: 700, fontSize: 14,
-            cursor: canSubmit && !loading ? 'pointer' : 'default', fontFamily: 'inherit', marginTop: 8,
+            cursor: canSubmit && !loading && !isCalculatingPayment ? 'pointer' : 'default', fontFamily: 'inherit', marginTop: 8,
           }}
         />
       </div>

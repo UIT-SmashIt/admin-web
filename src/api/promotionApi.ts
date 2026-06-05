@@ -6,11 +6,11 @@ import type {
 } from "../types/promotion.type.ts";
 
 export const fetchPromotions = async (): Promise<IPromotion[]> => {
-  return api.get<IPromotion[]>('/api/admin/promotion');
+  return api.get<IPromotion[]>('/api/operator/promotion');
 };
 
 export const addPromotion = async (newPromotion: PromotionAddPayload): Promise<void> => {
-  return api.post('/api/admin/promotion', newPromotion);
+  return api.post('/api/operator/promotion', newPromotion);
 };
 
 export const editPromotion = async ({ id, data }: { id: number; data: PromotionEditPayload }): Promise<void> => {
