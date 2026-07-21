@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+# SmashIt Admin Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Admin dashboard for **SmashIt**, a badminton court booking platform. This app is the back-office console used by facility staff/admins to manage courts, bookings, schedules, inventory, maintenance, vouchers, sales, revenue, and customers.
 
-Currently, two official plugins are available:
+Built with React 19, TypeScript, and Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Dashboard** — high-level overview of facility activity
+- **Court management** — configure and monitor courts
+- **Booking & schedule** — manage court bookings and time slots
+- **Sales & revenue** — track sales and revenue reports
+- **Inventory** — manage stock/products
+- **Vouchers** — create and manage promotional vouchers
+- **Maintenance** — log and track court/equipment maintenance
+- **Customer & community** — manage customer accounts and community data
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vitejs.dev/) — build tool & dev server
+- [Ant Design (antd)](https://ant.design/) — UI component library
+- [TanStack Router](https://tanstack.com/router) & [React Router](https://reactrouter.com/) — routing
+- [TanStack Query](https://tanstack.com/query) — server-state management & data fetching
+- [Axios](https://axios-http.com/) — HTTP client
+- [Chart.js](https://www.chartjs.org/) & [Recharts](https://recharts.org/) — data visualization
+- [ESLint](https://eslint.org/) — linting
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- [Node.js](https://nodejs.org/) 18+ (recommended: latest LTS)
+- npm (bundled with Node.js)
+- A running instance of the SmashIt backend API (see [Configuration](#configuration) below)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/UIT-SmashIt/admin-web.git
+   cd admin-web
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+   The app will be available at the URL Vite prints in the terminal (typically `http://localhost:5173`).
+
+## Configuration
+
+By default, the app expects the backend API to be running at `http://localhost:8080/` (see `src/api/apiClient.ts`). If your backend runs elsewhere, update the `baseURL` in that file accordingly.
+
+## Available Scripts
+
+| Command           | Description                                    |
+|--------------------|------------------------------------------------|
+| `npm run dev`      | Start the Vite development server with HMR     |
+| `npm run build`    | Type-check with `tsc` and build for production  |
+| `npm run lint`     | Run ESLint across the project                   |
+| `npm run preview`  | Preview the production build locally            |
+
+## Project Structure
+
+```
+src/
+├── api/          # API client & endpoint definitions (axios)
+├── components/   # Shared/reusable UI components
+├── const/        # Constants
+├── hooks/        # Custom React hooks
+├── layouts/      # Page layouts
+├── pages/        # Feature pages (Dashboard, Sale, Revenue, admin/*, etc.)
+├── routes/       # Route definitions (TanStack Router)
+├── types/        # TypeScript types
+└── utils/        # Utility/helper functions
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Contributing
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Contributions are welcome! Please open an issue or submit a pull request describing the change you'd like to make.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## License
+
+No license has been specified for this project yet.
